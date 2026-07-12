@@ -1,0 +1,2890 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>전체좌석형 상위기획 초안 (20260624)</title>
+  <style>
+    :root {
+      --c-available: #3B82F6;
+      --c-selected:  #16A34A;
+      --c-held:      #D1D5DB;
+      --c-sold:      #6B7280;
+      --c-restricted:#F59E0B;
+      --c-accessible:#8B5CF6;
+      --c-pit:       #EC4899;
+      --brand:       #00C853;
+      --bg:          #F1F5F9;
+      --surface:     #FFFFFF;
+      --border:      #E2E8F0;
+      --text1:       #0F172A;
+      --text2:       #475569;
+      --text3:       #94A3B8;
+      --radius:      8px;
+      --shadow:      0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --shadow-lg:   0 8px 24px rgba(0,0,0,.14);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    /* ── LNB ── */
+    #lnb {
+      width: 240px; min-width: 240px; background: #0F172A;
+      display: flex; flex-direction: column;
+      padding: 20px 12px; gap: 0;
+      overflow-y: auto; height: 100vh; position: sticky; top: 0;
+    }
+    .lnb-title {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 16px; border-bottom: 1px solid #1E293B; margin-bottom: 14px;
+    }
+    .lnb-logo { font-size: 24px; }
+    .lnb-product { font-size: 13px; font-weight: 700; color: #F1F5F9; }
+    .lnb-subtitle { font-size: 10px; color: #64748B; margin-top: 2px; }
+    .lnb-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      color: #475569; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .case-cards { display: flex; flex-direction: column; gap: 6px; }
+    .case-card {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      border: 1px solid #1E293B; background: #1E293B; transition: all .2s;
+    }
+    .case-card:hover { border-color: #334155; background: #243147; }
+    .case-card.active { border-color: #3B82F6; background: #1D3461; }
+    .case-card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .case-badge {
+      width: 20px; height: 20px; border-radius: 5px;
+      background: #334155; color: #94A3B8;
+      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .case-card.active .case-badge { background: #3B82F6; color: white; }
+    .case-badge.final { background: #7C3AED; color: white; }
+    .case-card.active .case-badge.final { background: #00C853; color: white; }
+    .case-name { font-size: 12px; font-weight: 600; color: #CBD5E1; flex: 1; }
+    .final-tag {
+      font-size: 9px; font-weight: 700; background: #7C3AED;
+      color: white; padding: 1px 5px; border-radius: 3px;
+    }
+    .case-card.active .final-tag { background: #00C853; }
+    .case-desc { font-size: 11px; color: #64748B; margin-bottom: 6px; }
+    .case-us-tags { display: flex; gap: 3px; flex-wrap: wrap; }
+    .us-tag {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+      background: #1E3A5F; color: #60A5FA;
+    }
+    .us-tag.active { background: #064E3B; color: #34D399; }
+
+    /* Feature toggles */
+    .feature-toggles { display: flex; flex-direction: column; gap: 4px; }
+    .feature-toggle-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-radius: 7px; cursor: pointer;
+      background: #1E293B; border: 1px solid transparent; transition: all .15s;
+    }
+    .feature-toggle-item:hover { border-color: #334155; }
+    .toggle-info { display: flex; align-items: center; gap: 7px; }
+    .toggle-us-tag {
+      font-size: 9px; font-weight: 700; background: #1E3A5F;
+      color: #60A5FA; padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+    }
+    .toggle-label { font-size: 11px; color: #94A3B8; }
+    /* Toggle switch */
+    .toggle-switch { position: relative; width: 32px; height: 18px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; border-radius: 18px;
+      background: #334155; cursor: pointer; transition: .2s;
+    }
+    .slider:before {
+      content: ''; position: absolute; width: 12px; height: 12px;
+      left: 3px; bottom: 3px; background: #64748B; border-radius: 50%; transition: .2s;
+    }
+    input:checked + .slider { background: #00C853; }
+    input:checked + .slider:before { transform: translateX(14px); background: white; }
+
+    /* ── US Reference Panel ── */
+    #us-panel {
+      width: 260px; min-width: 260px; background: #0F172A;
+      border-left: 1px solid #1E293B;
+      display: flex; flex-direction: column;
+      padding: 0; overflow-y: auto; height: 100vh; position: sticky; top: 0;
+    }
+    .us-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 14px 12px; border-bottom: 1px solid #1E293B;
+      cursor: pointer; user-select: none;
+    }
+    .us-panel-header:hover { background: #1E293B; }
+    .us-panel-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      color: #475569; text-transform: uppercase;
+    }
+    .us-panel-toggle { color: #475569; font-size: 12px; transition: transform .2s; }
+    .us-panel-toggle.open { transform: rotate(180deg); }
+    .us-list { padding: 8px 0; }
+    .us-item {
+      border-bottom: 1px solid #1E293B;
+    }
+    .us-item-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; cursor: pointer; user-select: none;
+    }
+    .us-item-header:hover { background: #1A2744; }
+    .us-num {
+      font-size: 10px; font-weight: 700; padding: 2px 6px;
+      border-radius: 4px; background: #1E3A5F; color: #60A5FA;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .us-item.done .us-num { background: #064E3B; color: #34D399; }
+    .us-item.partial .us-num { background: #3B2D0E; color: #FBBF24; }
+    .us-item.todo .us-num { background: #1E293B; color: #64748B; }
+    .us-title { font-size: 12px; color: #CBD5E1; flex: 1; }
+    .us-item.done .us-title { color: #94A3B8; }
+    .us-item.todo .us-title { color: #64748B; }
+    .us-chevron { color: #475569; font-size: 10px; transition: transform .15s; flex-shrink: 0; }
+    .us-chevron.open { transform: rotate(180deg); }
+    .us-detail {
+      display: none; padding: 8px 14px 12px 14px;
+      background: #0B1120; border-top: 1px solid #1E293B;
+    }
+    .us-detail.open { display: block; }
+    .us-want {
+      font-size: 11px; color: #94A3B8; line-height: 1.6;
+      margin-bottom: 6px;
+    }
+    .us-want strong { color: #60A5FA; }
+    .us-status-badge {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      padding: 2px 7px; border-radius: 3px; margin-top: 2px;
+    }
+    .badge-done { background: #064E3B; color: #34D399; }
+    .badge-partial { background: #3B2D0E; color: #FBBF24; }
+    .badge-todo { background: #1E293B; color: #64748B; }
+
+    /* ── Main area ── */
+    #main-area {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 16px; gap: 10px;
+      background: #CBD5E1; overflow-y: auto; min-height: 100vh;
+    }
+
+    body {
+      background: #CBD5E1;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex; flex-direction: row; align-items: stretch;
+      min-height: 100vh; padding: 0; gap: 0;
+    }
+
+
+    /* ── View Switch (secondary) ── */
+    #view-switch {
+      display: flex; background: #334155; border-radius: 8px; padding: 3px; gap: 3px;
+    }
+    #view-switch button {
+      padding: 5px 16px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .2s; color: #94A3B8; background: transparent;
+    }
+    #view-switch button.active { background: var(--surface); color: var(--text1); }
+
+    /* ── Device Wrapper ── */
+    .device { border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-lg); background: var(--bg); position: relative; }
+    #mobile-device  { width: 390px; max-width: 100%; }
+    #pc-device      { width: min(1100px, calc(100vw - 32px)); display: none; }
+
+    /* ─────────────────────────────────────────────────────────
+       MOBILE
+    ───────────────────────────────────────────────────────── */
+    .m-header {
+      height: 56px; background: var(--surface);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .m-header .back-btn {
+      width: 36px; height: 36px; border: none; background: transparent;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; font-size: 20px; color: var(--text1);
+    }
+    .m-header .title-wrap { flex: 1; }
+    .m-header .title-wrap .venue { font-size: 15px; font-weight: 700; color: var(--text1); }
+    .m-header .title-wrap .concert { font-size: 11px; color: var(--text2); }
+    .m-header .header-actions { display: flex; gap: 6px; align-items: center; }
+    .m-header select {
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 6px; font-size: 12px; background: var(--surface); color: var(--text1);
+    }
+    .view-toggle-btn {
+      border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px;
+      font-size: 11px; font-weight: 600; background: var(--surface);
+      cursor: pointer; color: var(--text2); white-space: nowrap;
+    }
+    .view-toggle-btn.active { background: #1E293B; color: white; border-color: #1E293B; }
+
+    /* Timer */
+    .timer-bar {
+      background: #FFF7ED; border-bottom: 1px solid #FED7AA;
+      padding: 6px 16px; display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px;
+    }
+    .timer-bar .timer-text { color: #C2410C; font-weight: 600; }
+    .timer-bar .timer-desc { color: #92400E; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Map Container */
+    .map-container {
+      height: 430px; background: #F8FAFC; position: relative; overflow: hidden;
+      touch-action: none; cursor: grab;
+    }
+    .map-container.grabbing { cursor: grabbing; }
+    #map-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+    /* Zoom Controls */
+    .zoom-controls { position: absolute; bottom: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .zoom-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow); color: var(--text1); line-height: 1;
+    }
+    .zoom-btn:active { background: var(--bg); }
+
+    /* Mini-map */
+    #minimap {
+      position: absolute; top: 12px; right: 12px;
+      width: 80px; height: 60px; border: 1px solid var(--border);
+      border-radius: 6px; background: white; overflow: hidden;
+      opacity: 0; transition: opacity .3s; box-shadow: var(--shadow);
+    }
+    #minimap.visible { opacity: 1; }
+    #minimap-viewport {
+      position: absolute; border: 2px solid var(--c-available);
+      background: rgba(59,130,246,.12); pointer-events: none; border-radius: 2px;
+    }
+    #minimap svg { width: 100%; height: 100%; }
+
+
+    /* LOD label */
+    #lod-label {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(0,0,0,.5); color: white;
+      font-size: 11px; padding: 3px 8px; border-radius: 4px; pointer-events: none;
+    }
+
+    /* Case annotation badge */
+    .case-annotation {
+      position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+      background: #FF4757; color: white;
+      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 4px;
+      pointer-events: none; white-space: nowrap; z-index: 20;
+    }
+
+    /* Seat Tooltip */
+    #seat-tooltip {
+      position: absolute; background: #1E293B; color: white;
+      padding: 6px 10px; border-radius: 6px; font-size: 11px;
+      pointer-events: none; white-space: nowrap; z-index: 50; display: none;
+      outline-offset: 2px; transition: outline .15s;
+    }
+
+    /* US-12: 좌석 유형 범례 오버레이 */
+    .seat-type-legend {
+      position: absolute; bottom: 12px; left: 12px;
+      display: none; flex-direction: column; gap: 0;
+      z-index: 20;
+    }
+    .seat-type-legend.visible { display: flex; }
+    .stype-toggle {
+      height: 36px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); font-size: 11px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow); color: var(--text1); padding: 0 10px;
+      white-space: nowrap; gap: 4px;
+    }
+    .stype-toggle:active { background: var(--bg); }
+    .stype-rows {
+      background: rgba(15,23,42,0.86); backdrop-filter: blur(6px);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 4px;
+      display: none; flex-direction: column; gap: 5px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .stype-rows.open { display: flex; }
+    .stype-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #E2E8F0; }
+    .stype-dot {
+      width: 16px; height: 16px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; flex-shrink: 0; font-weight: 700;
+    }
+
+    /* Legend */
+    .legend-bar {
+      display: flex; gap: 12px; padding: 8px 16px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .legend-bar::-webkit-scrollbar { display: none; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Bottom Sheet */
+    #bottom-sheet {
+      background: var(--surface); border-top: 1px solid var(--border);
+    }
+    #bottom-sheet.empty { padding: 12px 16px; }
+    #bottom-sheet.has-seat { padding: 16px; }
+    .empty-hint { text-align: center; color: var(--text3); font-size: 13px; }
+    .seat-info-card {
+      display: flex; align-items: center; gap: 12px;
+      background: #F8FAFC; border-radius: 10px; padding: 12px;
+      margin-bottom: 12px; border: 1px solid var(--border);
+    }
+    .seat-info-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: #EFF6FF; display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .seat-info-text .seat-id { font-size: 15px; font-weight: 700; color: var(--text1); }
+    .seat-info-text .seat-price { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .cta-btn {
+      width: 100%; height: 52px; background: var(--brand);
+      color: white; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .cta-btn:disabled { background: #D1D5DB; cursor: default; }
+
+    /* Breadcrumb (AC-02) */
+    #m-breadcrumb, #pc-breadcrumb {
+      background: #EFF6FF; border-bottom: 1px solid #BFDBFE;
+      padding: 6px 16px; display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text2); min-height: 32px; transition: all .3s;
+    }
+    #m-breadcrumb .bc-item, #pc-breadcrumb .bc-item { color: var(--text3); }
+    #m-breadcrumb .bc-sep, #pc-breadcrumb .bc-sep { color: var(--text3); }
+    #m-breadcrumb .bc-current, #pc-breadcrumb .bc-current { font-weight: 700; color: #1D4ED8; }
+    #m-breadcrumb .bc-back-btn, #pc-breadcrumb .bc-back-btn {
+      margin-left: auto; padding: 2px 10px; border: 1px solid #BFDBFE;
+      border-radius: 5px; background: white; color: #1D4ED8;
+      font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    #m-breadcrumb.lv1, #pc-breadcrumb.lv1 { background: var(--bg); border-bottom: 1px solid var(--border); }
+
+    /* Section Badge */
+    .section-badge {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(30,41,59,.82); color: white;
+      font-size: 13px; font-weight: 700; padding: 5px 14px 5px 10px;
+      border-radius: 20px; pointer-events: none; white-space: nowrap; z-index: 20;
+      display: flex; align-items: center; gap: 6px;
+      opacity: 0; transition: opacity .25s;
+      backdrop-filter: blur(4px);
+    }
+    .section-badge.visible { opacity: 1; }
+
+    /* Toast */
+    .toast-notif {
+      position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1E293B; color: white; padding: 10px 20px;
+      border-radius: 20px; font-size: 13px; z-index: 999;
+      opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+    }
+    .toast-notif.show { opacity: 1; }
+
+    /* ─────────────────────────────────────────────────────────
+       PC
+    ───────────────────────────────────────────────────────── */
+    .pc-header {
+      height: 56px; background: white; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 20px; gap: 16px;
+    }
+    .pc-header .back-btn {
+      display: flex; align-items: center; gap: 6px; border: none; background: transparent;
+      cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2);
+      padding: 6px 10px; border-radius: 6px;
+    }
+    .pc-header .back-btn:hover { background: var(--bg); }
+    .pc-header .title { font-size: 18px; font-weight: 700; flex: 1; }
+    .pc-header .pc-header-actions { display: flex; gap: 8px; align-items: center; }
+    .pc-view-btn {
+      border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px;
+      font-size: 13px; font-weight: 600; cursor: pointer; background: white; color: var(--text2);
+    }
+    .pc-view-btn.active { background: #1E293B; color: white; border-color: #1E293B; }
+    .pc-header select {
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; background: white;
+    }
+
+    .pc-layout { display: flex; height: 720px; }
+
+    .pc-left {
+      flex: 1; position: relative; background: #F1F5F9; overflow: hidden;
+      border-right: 1px solid var(--border); touch-action: none; cursor: grab;
+    }
+    .pc-left.grabbing { cursor: grabbing; }
+    #map-svg-pc { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+    #minimap-pc {
+      position: absolute; bottom: 16px; left: 16px;
+      width: 120px; height: 90px; border: 1px solid var(--border);
+      border-radius: 8px; background: white; overflow: hidden;
+      opacity: 0; transition: opacity .3s; box-shadow: var(--shadow);
+    }
+    #minimap-pc.visible { opacity: 1; }
+    #minimap-pc-viewport {
+      position: absolute; border: 2px solid var(--c-available);
+      background: rgba(59,130,246,.12); pointer-events: none; border-radius: 2px;
+    }
+    #minimap-pc svg { width: 100%; height: 100%; }
+    #lod-label-pc {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(0,0,0,.5); color: white;
+      font-size: 11px; padding: 3px 8px; border-radius: 4px; pointer-events: none;
+    }
+    .pc-case-annotation {
+      position: absolute; bottom: 24px; right: 16px;
+      background: #FF4757; color: white; font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 4px; pointer-events: none; white-space: nowrap;
+    }
+    .pc-zoom { position: absolute; bottom: 16px; right: 16px; display: flex; gap: 4px; }
+    .pc-zoom-btn {
+      width: 32px; height: 32px; border: 1px solid var(--border);
+      border-radius: 7px; background: white; cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow);
+    }
+    .pc-zoom-btn:hover { background: var(--bg); }
+    #seat-tooltip-pc {
+      position: absolute; background: #1E293B; color: white;
+      padding: 6px 10px; border-radius: 6px; font-size: 11px;
+      pointer-events: none; white-space: nowrap; z-index: 50; display: none;
+      outline-offset: 2px; transition: outline .15s;
+    }
+
+    /* PC Right Panel */
+    .pc-right {
+      width: 300px; flex-shrink: 0; background: white;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .pc-right-header { padding: 16px; border-bottom: 1px solid var(--border); }
+    .pc-right-header h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .pc-right-header p { font-size: 12px; color: var(--text2); }
+    .pc-section-list { flex: 1; overflow-y: auto; padding: 10px; }
+    .pc-section-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      border: 1px solid transparent; margin-bottom: 4px;
+    }
+    .pc-section-item:hover { background: #F8FAFC; }
+    .pc-section-item.selected { background: #EFF6FF; border-color: var(--c-available); }
+    .sec-left { display: flex; align-items: center; gap: 10px; }
+    .sec-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .sec-name { font-size: 13px; font-weight: 600; }
+    .sec-remain { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .sec-price { font-size: 13px; font-weight: 700; }
+    .pc-selected-panel { padding: 16px; border-top: 1px solid var(--border); }
+    .pc-selected-title { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .pc-seat-card { background: #F8FAFC; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    .pc-seat-card .pc-seat-id { font-size: 15px; font-weight: 700; }
+    .pc-seat-card .pc-seat-price { font-size: 13px; color: var(--text2); margin-top: 3px; }
+    .pc-empty-hint { text-align: center; color: var(--text3); font-size: 12px; padding: 12px 0; }
+    .pc-cta { width: 100%; height: 48px; background: var(--brand); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .pc-cta:disabled { background: #D1D5DB; cursor: default; }
+    .pc-timer { background: #FFF7ED; border-top: 1px solid #FED7AA; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .pc-timer .t { color: #C2410C; font-weight: 700; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<div id="lnb">
+  <div class="lnb-title">
+    <div class="lnb-logo">🎫</div>
+    <div>
+      <div class="lnb-product">베리즈 좌석도면</div>
+      <div class="lnb-subtitle">전체좌석형 상위기획 데모</div>
+    </div>
+  </div>
+
+  <div class="lnb-section-label">공연장 케이스</div>
+
+  <div class="case-cards">
+    <div class="case-card active" data-case="A" onclick="switchCase('A')">
+      <div class="case-card-header">
+        <span class="case-badge">A</span>
+      </div>
+      <div class="case-desc">934석 · 직선 구조 · T자 무대</div>
+      <div class="case-us-tags">
+        <span class="us-tag">US-01</span><span class="us-tag">US-04</span><span class="us-tag">US-05</span><span class="us-tag">US-07</span>
+      </div>
+    </div>
+
+    <div class="case-card" data-case="B" onclick="switchCase('B')">
+      <div class="case-card-header">
+        <span class="case-badge">B</span>
+      </div>
+      <div class="case-desc">3,596석 · 직선 구조 · T자 무대</div>
+      <div class="case-us-tags">
+        <span class="us-tag">US-01</span><span class="us-tag">US-03</span><span class="us-tag">US-07</span>
+      </div>
+    </div>
+
+    <div class="case-card" data-case="C" onclick="switchCase('C')">
+      <div class="case-card-header">
+        <span class="case-badge">C</span>
+      </div>
+      <div class="case-desc">1,266석 · 360° 아레나 · 소규모</div>
+      <div class="case-us-tags">
+        <span class="us-tag">US-03</span><span class="us-tag">US-08</span>
+      </div>
+    </div>
+
+    <div class="case-card" data-case="D" onclick="switchCase('D')">
+      <div class="case-card-header">
+        <span class="case-badge">D</span>
+      </div>
+      <div class="case-desc">2,410석 · 360° 아레나 · 대규모</div>
+      <div class="case-us-tags">
+        <span class="us-tag">US-01</span><span class="us-tag">US-02</span><span class="us-tag">US-03</span><span class="us-tag">US-08</span><span class="us-tag">US-11</span>
+      </div>
+    </div>
+
+    <div class="case-card" data-case="E" onclick="switchCase('E')">
+      <div class="case-card-header">
+        <span class="case-badge">E</span>
+      </div>
+      <div class="case-desc">18,350석 · 360° 아레나 · 초대형</div>
+      <div class="case-us-tags">
+        <span class="us-tag">US-01</span><span class="us-tag">US-02</span><span class="us-tag">US-03</span><span class="us-tag">US-08</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="lnb-section-label" style="margin-top:16px">기능 데모 토글</div>
+  <div class="feature-toggles">
+    <label class="feature-toggle-item" id="toggle-us02">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-02</span>
+        <span class="toggle-label">잔여석 컬러 강도</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="avail-color-on" onchange="onAvailColorChange()">
+        <span class="slider"></span>
+      </div>
+    </label>
+    <label class="feature-toggle-item">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-03</span>
+        <span class="toggle-label">미니맵</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-minimap" checked onchange="onMinimapToggle()">
+        <span class="slider"></span>
+      </div>
+    </label>
+    <label class="feature-toggle-item">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-07</span>
+        <span class="toggle-label">무대 구조물 표시</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-deco" checked onchange="onDecoToggle()">
+        <span class="slider"></span>
+      </div>
+    </label>
+    <label class="feature-toggle-item">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-09</span>
+        <span class="toggle-label">실시간 선점 시뮬</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-sim09" onchange="onSim09Toggle()">
+        <span class="slider"></span>
+      </div>
+    </label>
+    <label class="feature-toggle-item">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-11</span>
+        <span class="toggle-label">선택 좌석 위치 안내</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-us10" checked onchange="onUs10Toggle()">
+        <span class="slider"></span>
+      </div>
+    </label>
+    <label class="feature-toggle-item">
+      <div class="toggle-info">
+        <span class="toggle-us-tag">US-12</span>
+        <span class="toggle-label">좌석 유형 표시</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-us11" onchange="onUs11Toggle()">
+        <span class="slider"></span>
+      </div>
+    </label>
+  </div>
+</div>
+<div id="us-panel">
+  <div class="us-panel-header" onclick="toggleUsPanel()">
+    <span class="us-panel-title">유저스토리 US-01 ~ 12</span>
+    <span class="us-panel-toggle open" id="us-panel-toggle">▲</span>
+  </div>
+  <div class="us-list" id="us-list">
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-01</span>
+        <span class="us-title">좌석 수 기준 렌더 분기</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">공연 규모에 맞는 도면을 즉시 본다.<br><strong>소규모(≤3,000석)</strong>는 바로 좌석을, <strong>대규모</strong>는 구역 조감도를 먼저 표시.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (Case A/C vs B/D)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-02</span>
+        <span class="us-title">구역 조감도에서 빈자리 파악</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">조감도에서 <strong>구역별 잔여석 색상 강도</strong>로 빈자리가 있는 구역을 빠르게 파악.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (Case D, LNB 토글)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-03</span>
+        <span class="us-title">구역 드릴다운 탐색</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">조감도에서 구역 탭 → 해당 구역 <strong>좌석 배치로 줌인</strong>. 미니맵으로 현재 위치 확인.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (Case B/D)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-04</span>
+        <span class="us-title">좌석 툴팁 확인</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">PC hover / <strong>모바일 1탭</strong>으로 좌석 구역·열·번호·가격 확인. <strong>2탭</strong>으로 선택.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (전 케이스)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-05</span>
+        <span class="us-title">좌석 선택 및 hold</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">좌석 선택 시 <strong>임시 점유(hold)</strong>. 재탭으로 취소. 최대 매수 초과 시 토스트 안내.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (전 케이스)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-06</span>
+        <span class="us-title">모바일 핀치 줌 & 패닝</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">도면 영역 내 <strong>핀치 줌·드래그 패닝</strong>. 브라우저 뷰포트 확대 없음. 최대 배율 fit×5.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (모바일)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-07</span>
+        <span class="us-title">공연장 구조물 도면 표시</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">무대·토롯코·사운드타워 등 <strong>공연장 내 구조물</strong>의 위치와 형태를 도면에서 확인.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (Case A/B)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-08</span>
+        <span class="us-title">곡선형 구역 좌석 렌더</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">곡선 배치 구역의 좌석이 <strong>실제 공연장 배치대로 곡선(arc)</strong> 형태로 표시.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (Case C/D)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-09</span>
+        <span class="us-title">좌석 상태 실시간 반영</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">다른 사람이 좌석 선택/취소 시 <strong>내 도면에 즉시 반영</strong>. 이선좌 방지.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (시뮬, LNB 토글)</span>
+      </div>
+    </div>
+
+    <div class="us-item todo">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-10</span>
+        <span class="us-title">구역 교차 좌석 선택</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">서로 다른 구역의 좌석을 <strong>하나의 예매번호</strong>로 함께 선택할 수 있다. FULL 유형에서 기존 구역형의 "동일 구역 내 선택" 제약 해제.</div>
+        <div style="margin-top:6px;font-size:11px;color:#475569">
+          <strong>AC-01</strong> FULL 유형에서는 서로 다른 구역의 좌석을 동일 예매번호에 담을 수 있음
+        </div>
+        <span class="us-status-badge badge-todo">⏳ 백엔드 로직 확인 후 확정</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-11</span>
+        <span class="us-title">선택 좌석 위치 안내</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">선택 좌석에 <strong>흰색 ring</strong> + 조감도에 <strong>구역 인디케이터</strong>(흰 원·초록 점) 표시.</div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (전 케이스, LNB 토글)</span>
+      </div>
+    </div>
+
+    <div class="us-item done">
+      <div class="us-item-header" onclick="toggleUs(this)">
+        <span class="us-num">US-12</span>
+        <span class="us-title">좌석별 유형 표시</span>
+        <span class="us-chevron">▼</span>
+      </div>
+      <div class="us-detail">
+        <div class="us-want">도면에서 <strong>특수 좌석(♿ 휠체어석 · ⚠ 시야제한석 · ↺ 자리교환석)</strong>의 유형을 아이콘+색상으로 한눈에 확인. 툴팁에서 유형명 추가 표시.</div>
+        <div style="margin-top:6px;font-size:11px;color:#475569">
+          <strong>AC-01</strong> 특수 좌석에 유형별 아이콘+색상 표시 (이중 부호화)<br>
+          <strong>AC-02</strong> 도면 좌하단 유형 범례(legend) 상시 노출<br>
+          <strong>AC-04</strong> 유형 미설정 좌석은 일반 좌석 표시 유지
+        </div>
+        <span class="us-status-badge badge-done">✓ 구현됨 (전 케이스, LNB 토글)</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="main-area">
+
+<!-- View Switch -->
+<div id="view-switch">
+  <button class="active" onclick="switchView('mobile')">📱 모바일</button>
+  <button onclick="switchView('pc')">🖥 PC</button>
+</div>
+
+<!-- ============================================================
+     MOBILE
+     ============================================================ -->
+<div class="device" id="mobile-device">
+
+  <div class="m-header">
+    <button class="back-btn" onclick="handleBack('m')">←</button>
+    <div class="title-wrap">
+      <div class="venue" id="m-venue-name">블루스퀘어 마스터카드홀</div>
+      <div class="concert" id="m-concert-sub">아이유 H.E.R. WORLD TOUR · 2026.09.05 19:00</div>
+    </div>
+    <div class="header-actions">
+      <select id="m-person-count" onchange="updatePersonCount(this.value)">
+        <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="timer-bar">
+    <span class="timer-text" id="m-timer">⏱ 09:59</span>
+    <span class="timer-desc">좌석 선택 제한 시간</span>
+  </div>
+
+  <!-- Breadcrumb (AC-02) -->
+  <div id="m-breadcrumb" class="lv1">
+    <span class="bc-item" id="m-bc-lv1">전체 구역</span>
+    <span class="bc-sep" id="m-bc-sep" style="display:none">›</span>
+    <span class="bc-current" id="m-bc-current" style="display:none"></span>
+    <button class="bc-back-btn" id="m-bc-back" style="display:none" onclick="goToOverview('m')">← 전체보기</button>
+  </div>
+  <div class="map-container" id="map-container-m">
+    <svg id="map-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="minimap">
+      <svg id="minimap-svg-m" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="minimap-viewport"></div>
+    </div>
+    <div id="lod-label">전체 뷰</div>
+    <div class="section-badge" id="section-badge-m"></div>
+    <div class="case-annotation" id="m-case-ann">도면 진입 시 즉시 개별 좌석 표시</div>
+    <div id="seat-tooltip"></div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="doZoom('m', 1.4)">+</button>
+      <button class="zoom-btn" onclick="doZoom('m', 1/1.4)">−</button>
+      <button class="zoom-btn" onclick="resetZoom('m')">⟳</button>
+    </div>
+    <div class="toast-notif" id="toast-m"></div>
+    <!-- US-12: 좌석 유형 범례 (모바일) -->
+    <div class="seat-type-legend" id="seat-type-legend-m">
+      <div class="stype-rows" id="stype-rows-m">
+        <div class="stype-row"><div class="stype-dot" style="background:#CBD5E1;color:#64748B">♿</div>휠체어석</div>
+        <div class="stype-row"><div class="stype-dot" style="background:#EAB308;color:#78350F">★</div>시야추천석</div>
+        <div class="stype-row"><div class="stype-dot" style="background:#D97706;color:#FEF3C7">⚠</div>시야제한석</div>
+        <div class="stype-row"><div class="stype-dot" style="background:#0891B2;color:white">↺</div>자리교환석</div>
+      </div>
+      <button class="stype-toggle" id="stype-toggle-m" onclick="toggleLegend('m')">좌석 유형 ▾</button>
+    </div>
+  </div>
+
+  <div class="legend-bar" id="legend-bar-m"></div>
+
+  <div id="bottom-sheet" class="empty">
+    <p class="empty-hint">좌석을 선택해주세요</p>
+  </div>
+
+</div>
+
+
+<!-- ============================================================
+     PC
+     ============================================================ -->
+<div class="device" id="pc-device" style="display:none">
+
+  <div class="pc-header">
+    <button class="back-btn">← 돌아가기</button>
+    <span class="title" id="pc-venue-name">블루스퀘어 마스터카드홀</span>
+    <div class="pc-header-actions">
+      <select id="pc-person-count" onchange="updatePersonCount(this.value)">
+        <option>1명</option><option>2명</option><option>3명</option><option>4명</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Breadcrumb (AC-02) -->
+  <div id="pc-breadcrumb" class="lv1">
+    <span class="bc-item">전체 구역</span>
+    <span class="bc-sep" id="pc-bc-sep" style="display:none">›</span>
+    <span class="bc-current" id="pc-bc-current" style="display:none"></span>
+    <button class="bc-back-btn" id="pc-bc-back" style="display:none" onclick="goToOverview('pc')">← 전체보기</button>
+  </div>
+  <div class="pc-layout">
+    <!-- Left: Map -->
+    <div class="pc-left" id="pc-map-container">
+      <svg id="map-svg-pc" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="minimap-pc">
+        <svg id="minimap-svg-pc" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="minimap-pc-viewport"></div>
+      </div>
+      <div id="lod-label-pc">전체 뷰</div>
+      <div class="section-badge" id="section-badge-pc"></div>
+      <div class="pc-case-annotation" id="pc-case-ann">도면 진입 시 즉시 개별 좌석 표시</div>
+      <div id="seat-tooltip-pc"></div>
+      <div class="pc-zoom">
+        <button class="pc-zoom-btn" onclick="doZoom('pc', 1.4)">+</button>
+        <button class="pc-zoom-btn" onclick="doZoom('pc', 1/1.4)">−</button>
+        <button class="pc-zoom-btn" onclick="resetZoom('pc')">⟳</button>
+      </div>
+      <!-- US-12: 좌석 유형 범례 (PC) -->
+      <div class="seat-type-legend" id="seat-type-legend-pc">
+        <div class="stype-rows" id="stype-rows-pc">
+          <div class="stype-row"><div class="stype-dot" style="background:#CBD5E1;color:#64748B">♿</div>휠체어석</div>
+          <div class="stype-row"><div class="stype-dot" style="background:#EAB308;color:#78350F">★</div>시야추천석</div>
+          <div class="stype-row"><div class="stype-dot" style="background:#D97706;color:#FEF3C7">⚠</div>시야제한석</div>
+          <div class="stype-row"><div class="stype-dot" style="background:#0891B2;color:white">↺</div>자리교환석</div>
+        </div>
+        <button class="stype-toggle" id="stype-toggle-pc" onclick="toggleLegend('pc')">좌석 유형 ▾</button>
+      </div>
+    </div>
+
+    <!-- Right: Section list + Selection panel -->
+    <div class="pc-right">
+      <div class="pc-right-header">
+        <h3>구역 선택</h3>
+        <p id="pc-concert-sub">아이유 H.E.R. WORLD TOUR · 2026.09.05 19:00</p>
+      </div>
+      <div class="pc-section-list" id="pc-section-list"></div>
+      <div class="pc-selected-panel">
+        <div class="pc-selected-title">선택한 좌석</div>
+        <div id="pc-seat-area">
+          <p class="pc-empty-hint">좌석을 선택해주세요</p>
+        </div>
+        <button class="pc-cta" id="pc-cta-btn" disabled onclick="confirmSeat()">선택 완료 →</button>
+      </div>
+      <div class="pc-timer">
+        <span>남은 시간</span>
+        <span class="t" id="pc-timer">09:59</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-notif" id="toast-pc"></div>
+</div>
+
+
+<script>
+/* ============================================================
+   CASE CONFIG
+   ============================================================ */
+const CASE_CONFIG = {
+  A: {
+    venueName:   '블루스퀘어 신한카드홀',
+    concertSub:  '아이유 H.E.R. WORLD TOUR · 2026.09.05 19:00',
+    totalSeats:  '934',
+    initZoom:    'lod2',
+    annotation:  '소형 홀 — 진입 시 즉시 개별 좌석 표시',
+    stageX: 280, stageY: 10, stageW: 240, stageH: 45,
+    lodLabel: {
+      overview: '즉시 좌석 표시 (≤3,000석)',
+      transit:  '전환 중...',
+      seats:    'Lv2 좌석 뷰 — 탭하여 좌석 선택',
+    },
+  },
+  B: {
+    venueName:   'KSPO DOME',
+    concertSub:  '아이유 H.E.R. WORLD TOUR · 2026.09.06 18:00',
+    totalSeats:  '3,596',
+    initZoom:    'lod1',
+    annotation:  'T자 무대 — 구역 탭 → 좌석 드릴다운 (>3,000석)',
+    stageX: 175, stageY: 8, stageW: 450, stageH: 72,
+    lodLabel: {
+      overview: 'Lv1 구역 뷰 — 구역 탭으로 좌석 탐색',
+      transit:  '전환 중...',
+      seats:    'Lv2 좌석 뷰 — 탭하여 좌석 선택',
+    },
+  },
+  C: {
+    venueName:   '올림픽공원 핵스타디움',
+    concertSub:  '아이유 H.E.R. WORLD TOUR · 2026.09.12 19:00',
+    totalSeats:  '1,266',
+    initZoom:    'lod2',
+    annotation:  '360° 소규모 — 진입 시 즉시 개별 좌석 표시',
+    stageX: 335, stageY: 220, stageW: 130, stageH: 130, stageShape: 'ellipse',
+    fitBounds: { x: 148, y: 33, w: 504, h: 504 }, // r2=242, pad=10
+    lodLabel: {
+      overview: '즉시 좌석 표시 (≤3,000석)',
+      transit:  '전환 중...',
+      seats:    'Lv2 좌석 뷰 — 탭하여 좌석 선택',
+    },
+  },
+  D: {
+    venueName:   '잠실실내체육관',
+    concertSub:  '아이유 H.E.R. WORLD TOUR · 2026.09.13 18:00',
+    totalSeats:  '2,410',
+    initZoom:    'lod1',
+    annotation:  '360° 대규모 — 구역 탭 → 좌석 드릴다운 (>3,000석)',
+    stageX: 335, stageY: 220, stageW: 130, stageH: 130, stageShape: 'ellipse',
+    fitBounds: { x: 110, y: 5, w: 580, h: 560 },  // r2=280, pad=10
+    lodLabel: {
+      overview: 'Lv1 구역 뷰 — 구역 탭으로 좌석 탐색',
+      transit:  '전환 중...',
+      seats:    'Lv2 좌석 뷰 — 탭하여 좌석 선택',
+    },
+  },
+  E: {
+    venueName:   '고척스카이돔',
+    concertSub:  '아이유 H.E.R. WORLD TOUR · 2026.10.11 18:00',
+    totalSeats:  '18,350',
+    initZoom:    'lod1',
+    annotation:  '360° 초대형 — 5개 링 구조 · 구역 탭 → 좌석 드릴다운',
+    stageX: 680, stageY: 680, stageW: 240, stageH: 240, stageShape: 'ellipse',
+    venueW: 1600, venueH: 1600,
+    fitBounds: { x: 80, y: 80, w: 1440, h: 1440 },
+    lodLabel: {
+      overview: 'Lv1 구역 뷰 — 구역 탭으로 좌석 탐색',
+      transit:  '전환 중...',
+      seats:    'Lv2 좌석 뷰 — 탭하여 좌석 선택',
+    },
+  },
+};
+
+let currentCase = 'A';
+
+/* ============================================================
+   VENUE CONFIG
+   ============================================================ */
+const VENUE_W = 800, VENUE_H = 570;
+const MAX_ZOOM_FACTOR = 5.0;   // 전체 도면 fit 기준 최대 배율 (US-06 AC-03)
+const MIN_SEAT_TAP_PX = 44;   // 최대 줌에서 좌석 최소 렌더 크기 (px) — 탭 타겟 보장
+let STAGE_X = 250, STAGE_Y = 10, STAGE_W = 300, STAGE_H = 50;
+const SECTION_ZOOM_FILL = 0.65;
+const SEAT_SIZE     = 7;
+const SEAT_STEP     = SEAT_SIZE + 1;
+/* arc 좌석은 사각형이 45° 방향에서 대각선(≈9.9px)으로 겹치므로 작은 크기로 배치 */
+const ARC_SEAT_SIZE = 5;
+const VENUE_BG_IMAGE = null;
+const LOD_THRESHOLD = 1.8;
+const LOD_FADE_ZONE = 0.35;
+const ARC_GAP_DEG = 2.0;   // arc 구역 양쪽 각도 여백 (구역 간 시각적 간격)
+const ARC_GAP_R   = 3;     // arc 구역 내외 반경 여백 (px)
+
+/* 등급 */
+const GRADES = [
+  { id: 'VIP', label: 'VIP석', color: '#EC4899' },
+  { id: 'R',   label: 'R석',   color: '#0EA5E9' },
+  { id: 'S',   label: 'S석',   color: '#8B5CF6' },
+  { id: 'A',   label: 'A석',   color: '#F59E0B' },
+  { id: 'B',   label: 'B석',   color: '#64748B' },
+];
+
+/* US-12: 좌석 유형 (Ticketmaster 참고 — 색상+아이콘 이중 부호화) */
+const SEAT_TYPES = {
+  accessible:  { label: '휠체어석',   color: null,      icon: '♿', iconColor: '#64748B' }, // 컬러 없음, 항상 회색
+  restricted:  { label: '시야제한석', color: '#D97706', icon: '⚠',  iconColor: '#FEF3C7' },
+  resale:      { label: '자리교환석', color: '#0891B2', icon: '↺',  iconColor: 'white'   },
+  recommended: { label: '시야추천석',  color: '#EAB308', icon: '★',  iconColor: '#78350F' },
+};
+function us11On() { return document.getElementById('toggle-us11')?.checked; }
+
+/* US-12: 구역별 좌석 유형 규칙 */
+const ACCESSIBLE_SECS = new Set([
+  'bL','bR',
+  'b201','b202','b203',
+  'c_201','c_202','c_203','c_204','c_205',
+  'c_301','c_302','c_303','c_304',
+  'd_201','d_202','d_203','d_204','d_205',
+  'd_301','d_302','d_303','d_304',
+  'e_fl1','e_fl2','e_fl3','e_fl4','e_fl5','e_fl6',
+]);
+const RESTRICTED_SECS = new Set([
+  'cL','cR',
+  'b101','b102',
+  'bfc1','bfc2',
+  'c_203','c_204',
+  'd_203','d_204',
+]);
+// 시야추천석석: 무대 근접 Floor 구역의 2~3열 (rowIdx 1, 2)
+const RECOMMENDED_SECS = new Set([
+  'flL','flR',
+  'bfl1','bfl2',
+  'c_fl1','c_fl2','c_fl3','c_fl4','c_fl5','c_fl6',
+  'd_fl1','d_fl2','d_fl3','d_fl4','d_fl5','d_fl6',
+  'e_fl1','e_fl2','e_fl3','e_fl4','e_fl5','e_fl6',
+]);
+const RESALE_SECS = new Set([
+  'flL','flR',
+  'bfl1','bfl2',
+  'c_fl1','c_fl2','c_fl3','c_fl4','c_fl5','c_fl6',
+  'd_fl1','d_fl2','d_fl3','d_fl4','d_fl5','d_fl6',
+  'e_fl1','e_fl2','e_fl3','e_fl4','e_fl5','e_fl6',
+]);
+function getSeatType(secId, rowIdx, colIdx, idx) {
+  if (ACCESSIBLE_SECS.has(secId) && rowIdx === 0 && colIdx < 5) return 'accessible';
+  if (RESTRICTED_SECS.has(secId)) return 'restricted';
+  if (RECOMMENDED_SECS.has(secId) && (rowIdx === 1 || rowIdx === 2)) return 'recommended';
+  if (RESALE_SECS.has(secId) && idx % 11 === 3) return 'resale';
+  return null;
+}
+
+/* 데코: 출입구·스피커·콘솔 (케이스별) */
+/* Case A 데코 — 소형 홀(~930석)
+   stage: x=280-520, y=10-55
+   Floor-L: x=216-320, Floor-R: x=480-584 (center=400 기준 gap ±80px 대칭)
+   CONSOLE: x=363-437 (gap 내 중앙 ±43px 대칭) */
+const DECORATIONS_A = [
+  // SPK (스테이지 좌우 바깥 — 스테이지 경계 x=280/520)
+  { type: 'rect', x: 228, y: 14, w: 46, h: 30, fill: '#334155', rx: 4 },
+  { type: 'text', x: 251, y: 33, text: 'SPK', fontSize: 8, fill: '#CBD5E1', anchor: 'middle' },
+  { type: 'rect', x: 526, y: 14, w: 46, h: 30, fill: '#334155', rx: 4 },
+  { type: 'text', x: 549, y: 33, text: 'SPK', fontSize: 8, fill: '#CBD5E1', anchor: 'middle' },
+  // CONSOLE (Floor-L right=320 ↔ Floor-R left=480, 중앙=400, 좌우 gap 43px)
+  { type: 'rect', x: 363, y: 132, w: 74, h: 22, fill: '#1E293B', rx: 3 },
+  { type: 'text', x: 400, y: 147, text: 'CONSOLE', fontSize: 6, fill: '#CBD5E1', anchor: 'middle' },
+  // EXIT (캔버스 하단 좌우, 좌석 영역 y=311 이후)
+  { type: 'rect', x:   5, y: 360, w: 35, h: 35, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x:  22, y: 382, text: 'EXIT', fontSize: 8, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x: 760, y: 360, w: 35, h: 35, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x: 777, y: 382, text: 'EXIT', fontSize: 8, fill: '#EF4444', anchor: 'middle' },
+];
+
+/* Case B 데코 — T자 무대
+   메인 스테이지: x=175-625, y=8-80
+   런웨이:       x=365-435, y=80-270  (좌석 없는 영역) */
+const DECORATIONS_B = [
+  // 런웨이 (T자 세로 바)
+  { type: 'rect', x: 365, y: 80, w: 70, h: 190, fill: '#1E293B', rx: 0 },
+  { type: 'text', x: 400, y: 178, text: 'RUNWAY', fontSize: 7, fill: '#64748B', anchor: 'middle' },
+  // SPK 타워 (메인 스테이지 좌우 바깥)
+  { type: 'rect', x: 125, y: 14, w: 44, h: 52, fill: '#334155', rx: 4 },
+  { type: 'text', x: 147, y: 44, text: 'SPK', fontSize: 8, fill: '#CBD5E1', anchor: 'middle' },
+  { type: 'rect', x: 631, y: 14, w: 44, h: 52, fill: '#334155', rx: 4 },
+  { type: 'text', x: 653, y: 44, text: 'SPK', fontSize: 8, fill: '#CBD5E1', anchor: 'middle' },
+  // FOH 콘솔 (런웨이 끝 아래 오픈 공간)
+  { type: 'rect', x: 362, y: 274, w: 76, h: 36, fill: '#1E293B', rx: 3 },
+  { type: 'text', x: 400, y: 296, text: 'FOH', fontSize: 7, fill: '#CBD5E1', anchor: 'middle' },
+  // EXIT
+  { type: 'rect', x:   8, y:   8, w: 30, h: 30, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x:  23, y:  27, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x: 762, y:   8, w: 30, h: 30, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x: 777, y:  27, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x:   8, y: 496, w: 30, h: 30, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x:  23, y: 515, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x: 762, y: 496, w: 30, h: 30, fill: '#FEE2E2', rx: 3 },
+  { type: 'text', x: 777, y: 515, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+];
+
+let DECORATIONS = DECORATIONS_A;
+
+/* Case C/D 데코 (360° 공연장)
+   Stage 원 중심: (400,285), r=65
+   FLOOR ring: r1=90 ~ r2=155  1F: r1=160 ~ r2=242  2F: r1=248 ~ r2=280
+   구조물 배치 원칙: 좌석 링 바깥(r>280) 또는 stage 내부(r<65) 또는 캣워크 존(r<90) */
+const DECORATIONS_CD = [
+  // 캣워크 링 (stage~FLOOR 사이 동선, r=80)
+  { type: 'circle', cx: 400, cy: 285, r: 80,
+    fill: 'none', stroke: '#475569', strokeW: 2.5, dash: '5,4' },
+  // SPK 타워 (stage 내부, r≈53)
+  { type: 'rect', x: 336, y: 272, w: 22, h: 22, fill: '#334155', rx: 4 },
+  { type: 'text', x: 347, y: 287, text: 'SPK', fontSize: 6, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 442, y: 272, w: 22, h: 22, fill: '#334155', rx: 4 },
+  { type: 'text', x: 453, y: 287, text: 'SPK', fontSize: 6, fill: '#94A3B8', anchor: 'middle' },
+  // FOH 콘솔 (캣워크 존 내 무대 남쪽, r≈72 — FLOOR 시작 r=90 이내)
+  { type: 'rect', x: 382, y: 347, w: 36, h: 20, fill: '#1E293B', rx: 3 },
+  { type: 'text', x: 400, y: 361, text: 'FOH', fontSize: 7, fill: '#CBD5E1', anchor: 'middle' },
+  // 딜레이 타워 (2F 외곽 대각선 4방향, r≈300 — 모든 좌석 링 바깥)
+  { type: 'rect', x: 593, y:  62, w: 38, h: 22, fill: '#334155', rx: 3 },  // NE 315°
+  { type: 'text', x: 612, y:  77, text: 'DLY', fontSize: 7, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 169, y:  62, w: 38, h: 22, fill: '#334155', rx: 3 },  // NW 225°
+  { type: 'text', x: 188, y:  77, text: 'DLY', fontSize: 7, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 593, y: 486, w: 38, h: 22, fill: '#334155', rx: 3 },  // SE 45°
+  { type: 'text', x: 612, y: 501, text: 'DLY', fontSize: 7, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 169, y: 486, w: 38, h: 22, fill: '#334155', rx: 3 },  // SW 135°
+  { type: 'text', x: 188, y: 501, text: 'DLY', fontSize: 7, fill: '#94A3B8', anchor: 'middle' },
+];
+
+/* Case E 데코 (360° 초대형, 고척스카이돔)
+   Stage 원 중심: cx=800, cy=800 / r=120
+   FLOOR: r1=140 ~ r2=240 / 4F 외곽: r2=720
+   캔버스: 1600×1600 */
+const DECORATIONS_E = [
+  // 캣워크 링 (stage r=120 ~ FLOOR r1=140 사이 동선)
+  { type: 'circle', cx: 800, cy: 800, r: 130,
+    fill: 'none', stroke: '#475569', strokeW: 2.5, dash: '6,5' },
+  // SPK 타워 (stage 내부 좌우 대칭, r≈65)
+  { type: 'rect', x: 735, y: 790, w: 30, h: 20, fill: '#334155', rx: 4 },
+  { type: 'text', x: 750, y: 804, text: 'SPK', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 835, y: 790, w: 30, h: 20, fill: '#334155', rx: 4 },
+  { type: 'text', x: 850, y: 804, text: 'SPK', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  // FOH 콘솔 (south, r≈126 — 캣워크 내 남쪽)
+  { type: 'rect', x: 784, y: 918, w: 32, h: 18, fill: '#1E293B', rx: 3 },
+  { type: 'text', x: 800, y: 931, text: 'FOH', fontSize: 7, fill: '#CBD5E1', anchor: 'middle' },
+  // 딜레이 타워 (4F 바깥 대각선 4방향, r≈740)
+  { type: 'rect', x: 253, y: 263, w: 48, h: 28, fill: '#334155', rx: 3 },   // NW
+  { type: 'text', x: 277, y: 281, text: 'DLY', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x:1299, y: 263, w: 48, h: 28, fill: '#334155', rx: 3 },   // NE
+  { type: 'text', x:1323, y: 281, text: 'DLY', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x: 253, y:1309, w: 48, h: 28, fill: '#334155', rx: 3 },   // SW
+  { type: 'text', x: 277, y:1327, text: 'DLY', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  { type: 'rect', x:1299, y:1309, w: 48, h: 28, fill: '#334155', rx: 3 },   // SE
+  { type: 'text', x:1323, y:1327, text: 'DLY', fontSize: 8, fill: '#94A3B8', anchor: 'middle' },
+  // EXIT (4방향 캔버스 가장자리)
+  { type: 'rect', x:  16, y: 792, w: 36, h: 16, fill: '#FEE2E2', rx: 3 },   // W
+  { type: 'text', x:  34, y: 804, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x:1548, y: 792, w: 36, h: 16, fill: '#FEE2E2', rx: 3 },   // E
+  { type: 'text', x:1566, y: 804, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x: 792, y:  16, w: 16, h: 36, fill: '#FEE2E2', rx: 3 },   // N
+  { type: 'text', x: 800, y:  38, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+  { type: 'rect', x: 792, y:1548, w: 16, h: 36, fill: '#FEE2E2', rx: 3 },   // S
+  { type: 'text', x: 800, y:1570, text: 'EXIT', fontSize: 7, fill: '#EF4444', anchor: 'middle' },
+];
+
+/* Case A 구역 (소형 홀, 블루스퀘어 신한카드홀 · ~930석)
+   대칭 기준 x=400(center)
+   Floor: gap=±80 → L x=216-320, R x=480-584
+   B/C: 같은 외곽 x=216-584 정렬
+   SEAT_STEP=8 */
+const SECTIONS_A = [
+  // ── Floor (VIP, 20열×13행 — 각 260석) ──
+  { id:'flL', label:'Floor-L', gradeId:'VIP', color:'#EC4899', x:216, y:63,  rows:20, cols:13, price:132000 }, // x=216-320
+  { id:'flR', label:'Floor-R', gradeId:'VIP', color:'#EC4899', x:480, y:63,  rows:20, cols:13, price:132000 }, // x=480-584
+  // ── B구역 (R, y=231 — 5행, x=216-584 대칭 40+150+40=230석) ──
+  { id:'bL',  label:'B구역L',  gradeId:'R',   color:'#0EA5E9', x:216, y:231, rows: 5, cols: 8, price: 88000 }, // x=216-280
+  { id:'bC',  label:'B구역',   gradeId:'R',   color:'#0EA5E9', x:280, y:231, rows: 5, cols:30, price: 88000 }, // x=280-520
+  { id:'bR',  label:'B구역R',  gradeId:'R',   color:'#0EA5E9', x:520, y:231, rows: 5, cols: 8, price: 88000 }, // x=520-584
+  // ── C구역 (S, y=279 — 4행, x=216-584 대칭 24+136+24=184석) ──
+  { id:'cL',  label:'C구역L',  gradeId:'S',   color:'#8B5CF6', x:216, y:279, rows: 4, cols: 6, price: 66000 }, // x=216-264
+  { id:'cC',  label:'C구역',   gradeId:'S',   color:'#8B5CF6', x:264, y:279, rows: 4, cols:34, price: 66000 }, // x=264-536
+  { id:'cR',  label:'C구역R',  gradeId:'S',   color:'#8B5CF6', x:536, y:279, rows: 4, cols: 6, price: 66000 }, // x=536-584
+];
+
+/* Case C 구역 (소규모 360°, 올림픽공원 핵스타디움 · ~2,200석)
+   Stage 타원 중심: cx=400, cy=285 / 구역 shape:'arc' cx/cy/r1/r2/a1/a2(도, SVG좌표계 시계방향) */
+const SECTIONS_C = [
+  // ── FLOOR (VIP, 내부 링 full 360° — 6구역 × 60°, r1=90 r2=158) ──
+  // 스테이지(r=65)와 캣워크(r=80) 바깥에서 시작
+  { id:'c_fl1', label:'FLOOR-A', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1:  0, a2: 60, rows:5, price:154000 },
+  { id:'c_fl2', label:'FLOOR-B', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1: 60, a2:120, rows:5, price:154000 },
+  { id:'c_fl3', label:'FLOOR-C', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1:120, a2:180, rows:5, price:154000 },
+  { id:'c_fl4', label:'FLOOR-D', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1:180, a2:240, rows:5, price:154000 },
+  { id:'c_fl5', label:'FLOOR-E', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1:240, a2:300, rows:5, price:154000 },
+  { id:'c_fl6', label:'FLOOR-F', gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:400, cy:285, r1: 90, r2:155, a1:300, a2:360, rows:5, price:154000 },
+  // ── 1F (R석, full 360° — 12구역 × 30°, r1=160 r2=242) ──
+  { id:'c_101', label:'101구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:  0, a2: 30, rows:6, price: 99000 },
+  { id:'c_102', label:'102구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1: 30, a2: 60, rows:6, price: 99000 },
+  { id:'c_103', label:'103구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1: 60, a2: 90, rows:6, price: 99000 },
+  { id:'c_201', label:'201구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1: 90, a2:120, rows:6, price: 88000 },
+  { id:'c_202', label:'202구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:120, a2:150, rows:6, price: 88000 },
+  { id:'c_203', label:'203구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:150, a2:180, rows:6, price: 88000 },
+  { id:'c_204', label:'204구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:180, a2:210, rows:6, price: 88000 },
+  { id:'c_205', label:'205구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:210, a2:240, rows:6, price: 88000 },
+  { id:'c_301', label:'301구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:240, a2:270, rows:6, price: 99000 },
+  { id:'c_302', label:'302구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:270, a2:300, rows:6, price: 99000 },
+  { id:'c_303', label:'303구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:300, a2:330, rows:6, price: 99000 },
+  { id:'c_304', label:'304구역', gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:400, cy:285, r1:160, r2:242, a1:330, a2:360, rows:6, price: 99000 },
+];
+
+/* Case D 구역 (대규모 360°, 잠실실내체육관 · ~2,400석)
+   C와 동일 레이아웃 + 2F 추가, 행 수 증가 */
+const SECTIONS_D = [
+  ...SECTIONS_C.map(s => ({
+    ...s,
+    id: s.id.replace('c_', 'd_'),
+    rows: s.gradeId === 'VIP' ? 7 : 9,
+  })),
+  // ── 2F (S석, D전용 — 8구역 × 45°, r1=248 r2=280) ──
+  { id:'d_2f1', label:'2F-101구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:  0, a2: 45, rows:4, price: 66000 },
+  { id:'d_2f2', label:'2F-102구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1: 45, a2: 90, rows:4, price: 66000 },
+  { id:'d_2f3', label:'2F-201구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1: 90, a2:135, rows:4, price: 66000 },
+  { id:'d_2f4', label:'2F-202구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:135, a2:180, rows:4, price: 66000 },
+  { id:'d_2f5', label:'2F-203구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:180, a2:225, rows:4, price: 55000 },
+  { id:'d_2f6', label:'2F-301구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:225, a2:270, rows:4, price: 55000 },
+  { id:'d_2f7', label:'2F-302구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:270, a2:315, rows:4, price: 55000 },
+  { id:'d_2f8', label:'2F-303구역', gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:400, cy:285, r1:248, r2:280, a1:315, a2:360, rows:4, price: 55000 },
+];
+
+/* Case E 구역 (초대형 360° 아레나, 고척스카이돔 · 18,350석)
+   cx=800, cy=800 (1600×1600 캔버스)
+   FLOOR(VIP) 6×60° r1=140~240  /  1F(R) 12×30° r1=245~380
+   2F(S) 12×30° r1=385~510       /  3F(A) 16×22.5° r1=515~620
+   4F(B) 16×22.5° r1=625~720 */
+const SECTIONS_E = [
+  // ── FLOOR (VIP, 6×60°, r1=140 r2=240, rows=12) ──
+  ...Array.from({length:6}, (_,i) => ({
+    id:`e_fl${i+1}`, label:`FLOOR-${String.fromCharCode(65+i)}`, gradeId:'VIP', color:'#EC4899',
+    shape:'arc', cx:800, cy:800, r1:140, r2:240, a1:i*60, a2:(i+1)*60, rows:12, price:165000,
+  })),
+  // ── 1F (R석, 12×30°, r1=245 r2=380, rows=17) ──
+  ...Array.from({length:12}, (_,i) => ({
+    id:`e_1f${String(i+1).padStart(2,'0')}`, label:`1F-${i+1}구역`, gradeId:'R', color:'#0EA5E9',
+    shape:'arc', cx:800, cy:800, r1:245, r2:380, a1:i*30, a2:(i+1)*30, rows:17, price:110000,
+  })),
+  // ── 2F (S석, 12×30°, r1=385 r2=510, rows=16) ──
+  ...Array.from({length:12}, (_,i) => ({
+    id:`e_2f${String(i+1).padStart(2,'0')}`, label:`2F-${i+1}구역`, gradeId:'S', color:'#8B5CF6',
+    shape:'arc', cx:800, cy:800, r1:385, r2:510, a1:i*30, a2:(i+1)*30, rows:16, price:88000,
+  })),
+  // ── 3F (A석, 16×22.5°, r1=515 r2=620, rows=14) ──
+  ...Array.from({length:16}, (_,i) => ({
+    id:`e_3f${String(i+1).padStart(2,'0')}`, label:`3F-${i+1}구역`, gradeId:'A', color:'#F59E0B',
+    shape:'arc', cx:800, cy:800, r1:515, r2:620, a1:i*22.5, a2:(i+1)*22.5, rows:14, price:66000,
+  })),
+  // ── 4F (B석, 16×22.5°, r1=625 r2=720, rows=12) ──
+  ...Array.from({length:16}, (_,i) => ({
+    id:`e_4f${String(i+1).padStart(2,'0')}`, label:`4F-${i+1}구역`, gradeId:'B', color:'#64748B',
+    shape:'arc', cx:800, cy:800, r1:625, r2:720, a1:i*22.5, a2:(i+1)*22.5, rows:12, price:44000,
+  })),
+];
+
+/* Case B 구역 (대규모 아레나, KSPO DOME · ~3,600석) */
+/* Case B — T자 무대 아레나 레이아웃
+   메인 스테이지: (175,8)-(625,80)   런웨이: (365,80)-(435,270)
+   대칭 기준 x=400(런웨이 중심)
+   FLOOR: gap=10 → L 오른쪽끝=355(x=115), R 왼쪽시작=445
+   사이드: 101(x=22-78) ↔ 102(x=722-778) 완전 대칭 */
+const SECTIONS_B = [
+  // ── FLOOR (VIP, 런웨이 좌우 플로어 — 좌우 동일 gap=10) ──
+  { id:'bfl1', label:'FLOOR-L', gradeId:'VIP', color:'#EC4899',
+    x: 115, y: 84, cols: 30, rows: 22, price:154000 },  // x=115-355, gap→runway=10
+  { id:'bfl2', label:'FLOOR-R', gradeId:'VIP', color:'#EC4899',
+    x: 445, y: 84, cols: 30, rows: 22, price:154000 },  // x=445-685, gap←runway=10
+  // ── FLOOR 하단 (런웨이 끝 좌우, FOH 콘솔 사이) ──
+  { id:'bfc1', label:'FLOOR-CL', gradeId:'VIP', color:'#EC4899',
+    x: 115, y:272, cols: 30, rows:  6, price:132000 },  // x=115-355 (L과 동일 x)
+  { id:'bfc2', label:'FLOOR-CR', gradeId:'VIP', color:'#EC4899',
+    x: 445, y:272, cols: 30, rows:  6, price:132000 },  // x=445-685 (R과 동일 x)
+  // ── 사이드 (R, 좌우 벽면 — x=400 기준 완전 대칭) ──
+  { id:'b101', label:'101구역', gradeId:'R', color:'#0EA5E9',
+    x:  22, y: 84, cols:  7, rows: 30, price: 99000 },  // x=22-78
+  { id:'b102', label:'102구역', gradeId:'R', color:'#0EA5E9',
+    x: 722, y: 84, cols:  7, rows: 30, price: 99000 },  // x=722-778 (800-78=722, 대칭)
+  // ── 후방 구역 (R) ──
+  { id:'b201', label:'201구역', gradeId:'R', color:'#0EA5E9',
+    x:  80, y:334, cols: 26, rows: 12, price: 88000 },  // x=80-288
+  { id:'b202', label:'202구역', gradeId:'R', color:'#0EA5E9',
+    x: 296, y:334, cols: 26, rows: 12, price: 88000 },  // x=296-504
+  { id:'b203', label:'203구역', gradeId:'R', color:'#0EA5E9',
+    x: 512, y:334, cols: 26, rows: 12, price: 88000 },  // x=512-720
+  // ── 2층 후방 (S) ──
+  { id:'b2f1', label:'2F-101구역', gradeId:'S', color:'#8B5CF6',
+    x:  80, y:438, cols: 40, rows:  7, price: 66000 },  // x=80-400
+  { id:'b2f2', label:'2F-102구역', gradeId:'S', color:'#8B5CF6',
+    x: 408, y:438, cols: 40, rows:  7, price: 66000 },  // x=408-728
+];
+
+[SECTIONS_A, SECTIONS_B].forEach(secs => secs.forEach(s => { s.w = s.cols * SEAT_STEP; s.h = s.rows * SEAT_STEP; }));
+let SECTIONS = SECTIONS_A;
+
+/* arc 경로 헬퍼: cx/cy 중심, r1/r2 내외반경, a1/a2 시작/끝각도(도, SVG 시계방향) */
+function arcPath(cx, cy, r1, r2, a1Deg, a2Deg) {
+  if (a2Deg <= a1Deg) a2Deg += 360;
+  const sweep = a2Deg - a1Deg;
+  const laf = sweep > 180 ? 1 : 0;
+  const a1 = a1Deg * Math.PI / 180, a2 = a2Deg * Math.PI / 180;
+  const ix1 = cx + r1 * Math.cos(a1), iy1 = cy + r1 * Math.sin(a1);
+  const ix2 = cx + r1 * Math.cos(a2), iy2 = cy + r1 * Math.sin(a2);
+  const ox1 = cx + r2 * Math.cos(a1), oy1 = cy + r2 * Math.sin(a1);
+  const ox2 = cx + r2 * Math.cos(a2), oy2 = cy + r2 * Math.sin(a2);
+  const f = v => v.toFixed(2);
+  return `M${f(ix1)} ${f(iy1)} A${r1} ${r1} 0 ${laf} 1 ${f(ix2)} ${f(iy2)} L${f(ox2)} ${f(oy2)} A${r2} ${r2} 0 ${laf} 0 ${f(ox1)} ${f(oy1)}Z`;
+}
+
+/* 좌석 생성 */
+function generateSeats(sections, availRateMap = {}) {
+  const seats = [];
+  let idx = 0;
+  sections.forEach(sec => {
+    const rate = availRateMap[sec.id] !== undefined ? availRateMap[sec.id] : 0.60;
+    if (sec.shape === 'arc') {
+      /* 부채꼴 좌석: 행별 동심원호 배치, ARC_GAP만큼 여백을 두어 구역 간 간격 확보
+         행 간격(반경 방향)이 좌석 대각선(ARC_SEAT_SIZE*√2)보다 커야 코너 겹침이 없음 */
+      let a2 = sec.a2; if (a2 <= sec.a1) a2 += 360;
+      const a1p = sec.a1 + ARC_GAP_DEG;                 // 패딩 적용 시작각
+      const sweepPad = (a2 - sec.a1) - 2 * ARC_GAP_DEG; // 패딩 적용 호 범위
+      const r1p = sec.r1 + ARC_GAP_R, r2p = sec.r2 - ARC_GAP_R;
+      const minRowSpacing = Math.ceil(ARC_SEAT_SIZE * Math.SQRT2); // ≈8px
+      const maxRows = Math.max(1, Math.floor((r2p - r1p) / minRowSpacing));
+      const effectiveRows = Math.min(sec.rows, maxRows);
+      for (let r = 0; r < effectiveRows; r++) {
+        const rowR = r1p + (r2p - r1p) * (r + 0.5) / effectiveRows;
+        const arcLen = rowR * sweepPad * Math.PI / 180;
+        const numCols = Math.max(2, Math.round(arcLen / SEAT_STEP));
+        for (let c = 0; c < numCols; c++) {
+          const ang = (a1p + sweepPad * (c + 0.5) / numCols) * Math.PI / 180;
+          const sx = sec.cx + rowR * Math.cos(ang) - ARC_SEAT_SIZE / 2;
+          const sy = sec.cy + rowR * Math.sin(ang) - ARC_SEAT_SIZE / 2;
+          const state = Math.random() < rate ? 'available' : 'unavailable';
+          const seatType = getSeatType(sec.id, r, c, idx);
+          seats.push({
+            id: `${sec.id}-r${r+1}-c${c+1}`,
+            section: sec.id, label: sec.label,
+            row: String.fromCharCode(65 + (r % 26)), col: c + 1,
+            state, seatType, price: sec.price,
+            x: sx, y: sy, w: ARC_SEAT_SIZE, h: ARC_SEAT_SIZE, idx: idx++,
+          });
+        }
+      }
+    } else {
+      for (let r = 0; r < sec.rows; r++) {
+        for (let c = 0; c < sec.cols; c++) {
+          const state = Math.random() < rate ? 'available' : 'unavailable';
+          const seatType = getSeatType(sec.id, r, c, idx);
+          seats.push({
+            id: `${sec.id}-r${r+1}-c${c+1}`,
+            section: sec.id, label: sec.label,
+            row: String.fromCharCode(65 + (r % 26)), col: c + 1,
+            state, seatType, price: sec.price,
+            x: sec.x + c * SEAT_STEP, y: sec.y + r * SEAT_STEP,
+            w: SEAT_SIZE, h: SEAT_SIZE, idx: idx++,
+          });
+        }
+      }
+    }
+  });
+  return seats;
+}
+let allSeats = generateSeats(SECTIONS_A);
+
+const STATE_COLORS = { available: '#3B82F6', unavailable: '#CBD5E1', selected: '#16A34A' };
+function buildGradeColorMap(sections) {
+  const map = {};
+  sections.forEach(s => {
+    const g = GRADES.find(g => g.id === s.gradeId);
+    map[s.id] = g ? g.color : s.color;
+  });
+  return map;
+}
+let GRADE_COLOR_MAP = buildGradeColorMap(SECTIONS_A);
+
+/* Case D 전용: 구역별 데모 잔여율 (고루 분포) */
+const DEMO_AVAIL_D = {
+  // FLOOR: 2 매진 / 2 저잔여 / 2 고잔여
+  'd_fl1': 0,    'd_fl2': 0.06, 'd_fl3': 0.40,
+  'd_fl4': 0,    'd_fl5': 0.09, 'd_fl6': 0.35,
+  // 1F: 4 매진 / 4 저잔여 / 4 고잔여
+  'd_101': 0.30, 'd_102': 0,    'd_103': 0.07, 'd_201': 0.25,
+  'd_202': 0.04, 'd_203': 0,    'd_204': 0.45, 'd_205': 0.08,
+  'd_301': 0,    'd_302': 0.20, 'd_303': 0.05, 'd_304': 0.38,
+  // 2F: 3 매진 / 2 저잔여 / 3 고잔여
+  'd_2f1': 0.50, 'd_2f2': 0.03, 'd_2f3': 0,
+  'd_2f4': 0.45, 'd_2f5': 0.07, 'd_2f6': 0,
+  'd_2f7': 0.55, 'd_2f8': 0,
+};
+
+const DEMO_AVAIL_E = {
+  // FLOOR: 다양한 잔여율 (핫한 구역)
+  'e_fl1': 0,    'e_fl2': 0.04, 'e_fl3': 0.30,
+  'e_fl4': 0,    'e_fl5': 0.07, 'e_fl6': 0.25,
+  // 1F: 골고루 분포
+  'e_1f01': 0.40, 'e_1f02': 0,    'e_1f03': 0.08, 'e_1f04': 0.35,
+  'e_1f05': 0,    'e_1f06': 0.15, 'e_1f07': 0.50, 'e_1f08': 0.03,
+  'e_1f09': 0.28, 'e_1f10': 0,    'e_1f11': 0.12, 'e_1f12': 0.45,
+  // 2F: 비교적 여유
+  'e_2f01': 0.55, 'e_2f02': 0.20, 'e_2f03': 0,
+  'e_2f04': 0.60, 'e_2f05': 0.10, 'e_2f06': 0.48,
+  'e_2f07': 0.35, 'e_2f08': 0,    'e_2f09': 0.65,
+  'e_2f10': 0.25, 'e_2f11': 0.05, 'e_2f12': 0.70,
+  // 3F/4F: 잔여 많음
+  'e_3f01': 0.80, 'e_3f04': 0.75, 'e_3f08': 0.60, 'e_3f12': 0.85,
+  'e_4f01': 0.90, 'e_4f04': 0.88, 'e_4f08': 0.72, 'e_4f12': 0.95,
+};
+
+/* Case D/E 전용: 잔여석 컬러 강도 */
+const ZONE_COLORS = {
+  high:    { fill: '#FF1991', text: '#FFFFFF' },
+  low:     { fill: '#FFCCE8', text: '#CC0066' },
+  soldout: { fill: '#E0E0E0', text: '#9E9E9E' },
+};
+function getZoneBlockStyle(secId) {
+  const seats = allSeats.filter(s => s.section === secId);
+  const avail = seats.filter(s => s.state === 'available').length;
+  const total = seats.length || 1;
+  if (avail === 0) return { ...ZONE_COLORS.soldout, soldOut: true };
+  const ratio = avail / total;
+  return ratio <= 0.10
+    ? { ...ZONE_COLORS.low, soldOut: false }
+    : { ...ZONE_COLORS.high, soldOut: false };
+}
+
+function seatColor(seat) {
+  if (seat.state === 'unavailable') return STATE_COLORS.unavailable;
+  if (seat.seatType === 'accessible') return STATE_COLORS.unavailable; // 항상 회색, 컬러 없음
+  if (us11On() && seat.seatType && SEAT_TYPES[seat.seatType]?.color) return SEAT_TYPES[seat.seatType].color;
+  return GRADE_COLOR_MAP[seat.section] || '#3B82F6';
+}
+
+/* ============================================================
+   FIT & INITIAL TRANSFORM
+   ============================================================ */
+function getContainer(mode) {
+  return mode === 'm'
+    ? document.getElementById('map-container-m')
+    : document.getElementById('pc-map-container');
+}
+
+function getFitScale(mode) {
+  const c = getContainer(mode);
+  if (!c || !c.clientWidth || !c.clientHeight) return 0.65;
+  const cw = c.clientWidth, ch = c.clientHeight;
+  const fb = CASE_CONFIG[currentCase].fitBounds;
+  const cntW = fb ? fb.w : VENUE_W;
+  const cntH = fb ? fb.h : VENUE_H;
+  if (mode === 'pc') return Math.min(cw / cntW, ch / cntH);
+  // fitBounds 있거나 B/C/D/E: 콘텐츠 범위 기준으로 가로·세로 모두 fit
+  if (fb || currentCase === 'B' || currentCase === 'C' || currentCase === 'D' || currentCase === 'E') return Math.min(cw / cntW, ch / cntH);
+  if (VENUE_W / VENUE_H > cw / ch) return ch / VENUE_H;
+  return Math.min(cw / VENUE_W, ch / VENUE_H);
+}
+
+function getFitTransform(mode) {
+  const c = getContainer(mode);
+  if (!c || !c.clientWidth || !c.clientHeight) return null;
+  const cw = c.clientWidth, ch = c.clientHeight;
+  const scale = getFitScale(mode);
+  const fb = CASE_CONFIG[currentCase].fitBounds;
+  if (fb) {
+    // fitBounds 기준: 콘텐츠 영역을 컨테이너 중앙 정렬
+    return {
+      scale,
+      tx: (cw - fb.w * scale) / 2 - fb.x * scale,
+      ty: (ch - fb.h * scale) / 2 - fb.y * scale,
+    };
+  }
+  if (mode === 'pc') {
+    return { scale, tx: (cw - VENUE_W * scale) / 2, ty: (ch - VENUE_H * scale) / 2 };
+  }
+  if (currentCase === 'B') {
+    return { scale, tx: (cw - VENUE_W * scale) / 2, ty: (ch - VENUE_H * scale) / 2 };
+  }
+  const stageCX = STAGE_X + STAGE_W / 2;
+  return { scale, tx: cw / 2 - stageCX * scale, ty: (ch - VENUE_H * scale) / 2 };
+}
+
+/* 최대 줌 = MAX_ZOOM_FACTOR 배율 vs 최소 좌석 44px 중 큰 값 보장 */
+function getMaxScale(mode) {
+  const fitBased = getFitScale(mode) * MAX_ZOOM_FACTOR;
+  const seatBased = MIN_SEAT_TAP_PX / ARC_SEAT_SIZE; // 44/5 = 8.8
+  return Math.max(fitBased, seatBased);
+}
+
+/* Case A: fit 전체 뷰에서 바로 개별 좌석 표시 (LOD1 블록 없음)
+   Case B: fit scale = LOD1 구역 조감도 */
+function getInitialTransform(mode) {
+  const baseFit = getFitTransform(mode);
+  if (!baseFit) return null;
+  // 두 케이스 모두 fit scale로 시작 — LOD 표시 여부만 다름
+  return baseFit;
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+const _anims = {};
+function animateTransformTo(mode, target, duration = 320) {
+  if (_anims[mode]) cancelAnimationFrame(_anims[mode]);
+  const start = { ...transforms[mode] };
+  const t0 = performance.now();
+  function step(now) {
+    const p = Math.min((now - t0) / duration, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    transforms[mode].scale = start.scale + (target.scale - start.scale) * e;
+    transforms[mode].tx    = start.tx    + (target.tx    - start.tx)    * e;
+    transforms[mode].ty    = start.ty    + (target.ty    - start.ty)    * e;
+    applyTransform(mode);
+    if (p < 1) _anims[mode] = requestAnimationFrame(step);
+  }
+  _anims[mode] = requestAnimationFrame(step);
+}
+
+/* ============================================================
+   SECTION ZOOM
+   ============================================================ */
+function getSectionZoomTarget(secId, mode) {
+  const sec = SECTIONS.find(s => s.id === secId);
+  if (!sec) return null;
+  const c = getContainer(mode);
+  const cw = c.clientWidth, ch = c.clientHeight;
+  let cx2, cy2, size;
+  if (sec.shape === 'arc') {
+    let a2 = sec.a2; if (a2 <= sec.a1) a2 += 360;
+    const midA = (sec.a1 + a2) / 2 * Math.PI / 180;
+    const midR = (sec.r1 + sec.r2) / 2;
+    cx2 = sec.cx + midR * Math.cos(midA);
+    cy2 = sec.cy + midR * Math.sin(midA);
+    const radial = sec.r2 - sec.r1;
+    const chord  = 2 * sec.r2 * Math.sin((a2 - sec.a1) * Math.PI / 360);
+    size = Math.max(radial, chord * 0.6);
+  } else {
+    cx2 = sec.x + sec.w / 2; cy2 = sec.y + sec.h / 2;
+    size = Math.max(sec.w, sec.h);
+  }
+  const fillScale = Math.min((cw * SECTION_ZOOM_FILL) / size, (ch * SECTION_ZOOM_FILL) / size, getMaxScale(mode));
+  const lod2Min = getFitScale(mode) * (LOD_THRESHOLD + LOD_FADE_ZONE + 0.3);
+  const ts = Math.min(Math.max(fillScale, lod2Min), getMaxScale(mode));
+  return { scale: ts, tx: cw / 2 - cx2 * ts, ty: ch / 2 - cy2 * ts };
+}
+
+function animateToSection(secId, mode) {
+  const target = getSectionZoomTarget(secId, mode);
+  if (!target) return;
+  animateTransformTo(mode, target, 350);
+  const sec = SECTIONS.find(s => s.id === secId);
+  if (sec) showNotif(`${sec.label} 구역`);
+  if (sec) updateBreadcrumb(mode, sec.label);
+  highlightSectionInList(secId);
+}
+
+/* AC-02: 전체보기 복귀 */
+function goToOverview(mode) {
+  const target = getInitialTransform(mode);
+  if (!target) return;
+  animateTransformTo(mode, target, 320);
+  resetBreadcrumb(mode);
+  document.querySelectorAll('.pc-section-item').forEach(el => el.classList.remove('selected'));
+}
+
+/* AC-02: 헤더 뒤로가기 */
+function handleBack(mode) {
+  const isLv2 = mode === 'm'
+    ? document.getElementById('m-bc-sep')?.style.display !== 'none'
+    : document.getElementById('pc-bc-sep')?.style.display !== 'none';
+  if (isLv2) goToOverview(mode);
+  else showNotif('이전 페이지로 이동합니다');
+}
+
+function updateBreadcrumb(mode, sectionLabel) {
+  if (mode === 'm') {
+    const bc = document.getElementById('m-breadcrumb');
+    if (bc) bc.classList.remove('lv1');
+    const sep = document.getElementById('m-bc-sep'); if (sep) sep.style.display = 'inline';
+    const cur = document.getElementById('m-bc-current');
+    if (cur) { cur.style.display = 'inline'; cur.textContent = sectionLabel; }
+    const back = document.getElementById('m-bc-back'); if (back) back.style.display = 'inline-block';
+  } else {
+    const bc = document.getElementById('pc-breadcrumb');
+    if (bc) bc.classList.remove('lv1');
+    const sep = document.getElementById('pc-bc-sep'); if (sep) sep.style.display = 'inline';
+    const cur = document.getElementById('pc-bc-current');
+    if (cur) { cur.style.display = 'inline'; cur.textContent = sectionLabel; }
+    const back = document.getElementById('pc-bc-back'); if (back) back.style.display = 'inline-block';
+  }
+  showSectionBadge(mode, sectionLabel);
+}
+
+function showSectionBadge(mode, label) {
+  const el = document.getElementById(mode === 'm' ? 'section-badge-m' : 'section-badge-pc');
+  if (!el) return;
+  el.innerHTML = `<span style="font-size:15px">📍</span>${label}`;
+  el.classList.add('visible');
+}
+
+function hideSectionBadge(mode) {
+  const el = document.getElementById(mode === 'm' ? 'section-badge-m' : 'section-badge-pc');
+  if (el) el.classList.remove('visible');
+}
+
+function resetBreadcrumb(mode) {
+  if (mode === 'm') {
+    const bc = document.getElementById('m-breadcrumb'); if (bc) bc.classList.add('lv1');
+    const sep = document.getElementById('m-bc-sep'); if (sep) sep.style.display = 'none';
+    const cur = document.getElementById('m-bc-current'); if (cur) cur.style.display = 'none';
+    const back = document.getElementById('m-bc-back'); if (back) back.style.display = 'none';
+  } else {
+    const bc = document.getElementById('pc-breadcrumb'); if (bc) bc.classList.add('lv1');
+    const sep = document.getElementById('pc-bc-sep'); if (sep) sep.style.display = 'none';
+    const cur = document.getElementById('pc-bc-current'); if (cur) cur.style.display = 'none';
+    const back = document.getElementById('pc-bc-back'); if (back) back.style.display = 'none';
+  }
+  hideSectionBadge(mode);
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let selectedSeats = [];
+let personCount = 1;
+const transforms = {
+  m:  { scale: 1, tx: 0, ty: 0 },
+  pc: { scale: 1, tx: 0, ty: 0 },
+};
+let timerSecs = 599;
+let timerId = null;
+const pendingTap = { m: null, pc: null }; // 모바일 2단 탭: 1탭=툴팁, 2탭=선택
+
+/* ============================================================
+   SVG BUILD
+   ============================================================ */
+function svgEl2(tag) { return document.createElementNS('http://www.w3.org/2000/svg', tag); }
+
+function buildSVG(svgEl, mode) {
+  svgEl.removeAttribute('viewBox');
+  svgEl.innerHTML = '';
+
+  /* Viewport group */
+  const viewport = svgEl2('g');
+  viewport.setAttribute('id', `map-viewport-${mode}`);
+
+  /* Background */
+  const vW = CASE_CONFIG[currentCase].venueW || VENUE_W;
+  const vH = CASE_CONFIG[currentCase].venueH || VENUE_H;
+  const bg = svgEl2('rect');
+  bg.setAttribute('width', vW); bg.setAttribute('height', vH);
+  bg.setAttribute('fill', '#F1F5F9');
+  viewport.appendChild(bg);
+
+  /* Decorations */
+  const decoG = svgEl2('g');
+  decoG.setAttribute('pointer-events', 'none');
+  DECORATIONS.forEach(d => {
+    if (d.type === 'rect') {
+      const r = svgEl2('rect');
+      r.setAttribute('x', d.x); r.setAttribute('y', d.y);
+      r.setAttribute('width', d.w); r.setAttribute('height', d.h);
+      r.setAttribute('rx', d.rx || 0); r.setAttribute('fill', d.fill);
+      decoG.appendChild(r);
+    } else if (d.type === 'line') {
+      const l = svgEl2('line');
+      l.setAttribute('x1', d.x1); l.setAttribute('y1', d.y1);
+      l.setAttribute('x2', d.x2); l.setAttribute('y2', d.y2);
+      l.setAttribute('stroke', d.stroke); l.setAttribute('stroke-width', d.strokeW);
+      if (d.dash) l.setAttribute('stroke-dasharray', d.dash);
+      decoG.appendChild(l);
+    } else if (d.type === 'circle') {
+      const c = svgEl2('circle');
+      c.setAttribute('cx', d.cx); c.setAttribute('cy', d.cy); c.setAttribute('r', d.r);
+      c.setAttribute('fill', d.fill || 'none');
+      if (d.stroke) { c.setAttribute('stroke', d.stroke); c.setAttribute('stroke-width', d.strokeW || 1); }
+      if (d.dash) c.setAttribute('stroke-dasharray', d.dash);
+      decoG.appendChild(c);
+    } else if (d.type === 'text') {
+      const t = svgEl2('text');
+      t.setAttribute('x', d.x); t.setAttribute('y', d.y);
+      t.setAttribute('text-anchor', d.anchor || 'middle');
+      t.setAttribute('fill', d.fill); t.setAttribute('font-size', d.fontSize || 10);
+      t.setAttribute('font-family', 'system-ui');
+      t.textContent = d.text;
+      decoG.appendChild(t);
+    }
+  });
+  viewport.appendChild(decoG);
+
+  /* Stage */
+  const stageG = svgEl2('g');
+  const cfg360 = CASE_CONFIG[currentCase];
+  const stageCx = STAGE_X + STAGE_W / 2, stageCy = STAGE_Y + STAGE_H / 2;
+  if (cfg360.stageShape === 'ellipse') {
+    const se = svgEl2('ellipse');
+    se.setAttribute('cx', stageCx); se.setAttribute('cy', stageCy);
+    se.setAttribute('rx', STAGE_W / 2); se.setAttribute('ry', STAGE_H / 2);
+    se.setAttribute('fill', '#1E293B'); stageG.appendChild(se);
+  } else {
+    const sr = svgEl2('rect');
+    sr.setAttribute('x', STAGE_X); sr.setAttribute('y', STAGE_Y);
+    sr.setAttribute('width', STAGE_W); sr.setAttribute('height', STAGE_H);
+    sr.setAttribute('rx', 8); sr.setAttribute('fill', '#1E293B');
+    stageG.appendChild(sr);
+  }
+  const st = svgEl2('text');
+  st.setAttribute('x', stageCx); st.setAttribute('y', stageCy + 5);
+  st.setAttribute('text-anchor', 'middle'); st.setAttribute('fill', 'white');
+  st.setAttribute('font-size', '14'); st.setAttribute('font-weight', 'bold');
+  st.setAttribute('font-family', 'system-ui'); st.textContent = 'STAGE';
+  stageG.appendChild(st);
+  viewport.appendChild(stageG);
+
+  /* LOD2: Individual seats */
+  const seatGroup = svgEl2('g');
+  seatGroup.setAttribute('id', `seats-${mode}`);
+  seatGroup.style.opacity = '0';
+  seatGroup.style.pointerEvents = 'none';
+  allSeats.forEach(seat => {
+    const rect = svgEl2('rect');
+    rect.setAttribute('x', seat.x); rect.setAttribute('y', seat.y);
+    rect.setAttribute('width', seat.w); rect.setAttribute('height', seat.h);
+    rect.setAttribute('rx', Math.min(seat.w, seat.h) * 0.15);
+    rect.setAttribute('fill', seatColor(seat));
+    rect.setAttribute('data-seat', seat.id);
+    if (seat.state === 'available' && seat.seatType !== 'accessible') rect.style.cursor = 'pointer';
+    else if (seat.seatType === 'accessible') rect.style.cursor = 'not-allowed';
+    rect.addEventListener('mouseenter', (e) => showTooltip(e, seat, mode));
+    rect.addEventListener('mouseleave', () => hideTooltip(mode));
+    rect.addEventListener('click', (e) => { if (!e._wasDrag) selectSeat(seat, mode); });
+    rect.setAttribute('id', `seat-rect-${mode}-${seat.idx}`);
+    seatGroup.appendChild(rect);
+  });
+  /* LOD1: Section blocks */
+  const blockGroup = svgEl2('g');
+  blockGroup.setAttribute('id', `section-blocks-${mode}`);
+
+  /* 블록 레이블 변환: 구역 제거 / FLOOR- 제거 / 2F→4xx */
+  let twoFCount = 0;
+  const blockLabelMap = {};
+  SECTIONS.forEach(sec => {
+    if (/^2F-/.test(sec.label))        blockLabelMap[sec.id] = String(401 + twoFCount++);
+    else if (/^FLOOR-/.test(sec.label)) blockLabelMap[sec.id] = sec.label.replace(/^FLOOR-/, '');
+    else                                blockLabelMap[sec.id] = sec.label.replace(/구역$/, '');
+  });
+
+  /* 케이스 내 균일 폰트 크기: 가장 작은 섹션 기준으로 통일 */
+  let uniformArcFs = 20, uniformRectFs = 32;
+  SECTIONS.forEach(sec => {
+    const chars = Math.max(blockLabelMap[sec.id].length, 1);
+    if (sec.shape === 'arc') {
+      const radial = sec.r2 - sec.r1;
+      let a2e = sec.a2; if (a2e <= sec.a1) a2e += 360;
+      const chord = 2 * ((sec.r1 + sec.r2) / 2) * Math.sin((a2e - sec.a1) * Math.PI / 360);
+      uniformArcFs = Math.min(uniformArcFs, radial / 1.5, chord / (chars * 0.65));
+    } else {
+      uniformRectFs = Math.min(uniformRectFs, sec.h / 1.5, sec.w / (chars * 0.65));
+    }
+  });
+  uniformArcFs  = Math.max(Math.floor(uniformArcFs),  9);
+  uniformRectFs = Math.max(Math.floor(uniformRectFs), 9);
+
+  SECTIONS.forEach(sec => {
+    let lx, ly;
+    if (sec.shape === 'arc') {
+      /* 부채꼴 path — ARC_GAP 여백 적용 */
+      const bp = svgEl2('path');
+      bp.setAttribute('d', arcPath(sec.cx, sec.cy, sec.r1 + ARC_GAP_R, sec.r2 - ARC_GAP_R, sec.a1 + ARC_GAP_DEG, sec.a2 - ARC_GAP_DEG));
+      const blockFill = ((currentCase === 'D' || currentCase === 'E') && document.getElementById('avail-color-on')?.checked)
+        ? getZoneBlockStyle(sec.id).fill
+        : sec.color;
+      bp.setAttribute('fill', blockFill); bp.setAttribute('stroke', 'rgba(255,255,255,0.15)');
+      bp.setAttribute('stroke-width', '1'); bp.style.cursor = 'pointer';
+      bp.addEventListener('click', e => { e.stopPropagation(); animateToSection(sec.id, mode); });
+      blockGroup.appendChild(bp);
+      let a2 = sec.a2; if (a2 <= sec.a1) a2 += 360;
+      const midA = (sec.a1 + a2) / 2 * Math.PI / 180;
+      const midR = (sec.r1 + sec.r2) / 2;
+      lx = sec.cx + midR * Math.cos(midA); ly = sec.cy + midR * Math.sin(midA);
+    } else {
+      const br = svgEl2('rect');
+      br.setAttribute('x', sec.x); br.setAttribute('y', sec.y);
+      br.setAttribute('width', sec.w); br.setAttribute('height', sec.h);
+      const blockFill = ((currentCase === 'D' || currentCase === 'E') && document.getElementById('avail-color-on')?.checked)
+        ? getZoneBlockStyle(sec.id).fill
+        : sec.color;
+      br.setAttribute('fill', blockFill); br.setAttribute('rx', 6);
+      br.style.cursor = 'pointer';
+      br.addEventListener('click', e => { e.stopPropagation(); animateToSection(sec.id, mode); });
+      blockGroup.appendChild(br);
+      lx = sec.x + sec.w / 2; ly = sec.y + sec.h / 2;
+    }
+
+    const nameT = svgEl2('text');
+    nameT.setAttribute('x', lx); nameT.setAttribute('y', ly + 4);
+    nameT.setAttribute('text-anchor', 'middle');
+    const blockTextFill = ((currentCase === 'D' || currentCase === 'E') && document.getElementById('avail-color-on')?.checked)
+      ? getZoneBlockStyle(sec.id).text
+      : 'white';
+    nameT.setAttribute('fill', blockTextFill);
+    nameT.setAttribute('font-size', sec.shape === 'arc' ? uniformArcFs : uniformRectFs);
+    nameT.setAttribute('font-weight', '700');
+    nameT.setAttribute('font-family', 'system-ui'); nameT.setAttribute('pointer-events', 'none');
+    nameT.textContent = blockLabelMap[sec.id];
+    blockGroup.appendChild(nameT);
+  });
+  viewport.appendChild(blockGroup);  // LOD1 먼저 (아래)
+  viewport.appendChild(seatGroup);   // LOD2 위에
+
+  /* US-12: 좌석 유형 아이콘 레이어 (seatGroup 위, boundsGroup 아래) */
+  const typeIconGroup = svgEl2('g');
+  typeIconGroup.setAttribute('id', `seat-type-icons-${mode}`);
+  typeIconGroup.style.pointerEvents = 'none';
+  typeIconGroup.style.opacity = '0';  // LOD 연동은 applyLOD에서 처리
+  _fillTypeIconGroup(typeIconGroup);
+  viewport.appendChild(typeIconGroup);
+
+  /* 구역 경계선 — LOD2 진입 후 고배율에서 fade-out, arc 섹션 전용 */
+  const boundsGroup = svgEl2('g');
+  boundsGroup.setAttribute('id', `section-bounds-${mode}`);
+  boundsGroup.setAttribute('pointer-events', 'none');
+  SECTIONS.forEach(sec => {
+    if (!sec.shape) return;
+    /* 패딩 적용 arc 외곽선 (구역 형태 표시) */
+    const bp = svgEl2('path');
+    bp.setAttribute('d', arcPath(sec.cx, sec.cy, sec.r1 + ARC_GAP_R, sec.r2 - ARC_GAP_R, sec.a1 + ARC_GAP_DEG, sec.a2 - ARC_GAP_DEG));
+    bp.setAttribute('fill', 'none');
+    bp.setAttribute('stroke', sec.color);
+    bp.setAttribute('stroke-width', '1.5');
+    bp.setAttribute('opacity', '0.55');
+    boundsGroup.appendChild(bp);
+    /* 구역명 레이블 — LOD2에서 방향 안내 */
+    let a2v = sec.a2; if (a2v <= sec.a1) a2v += 360;
+    const midA = (sec.a1 + a2v) / 2 * Math.PI / 180;
+    const labelR = sec.r2 - ARC_GAP_R - 5; // 외곽선 바로 안쪽
+    const lx = sec.cx + labelR * Math.cos(midA);
+    const ly = sec.cy + labelR * Math.sin(midA);
+    const lt = svgEl2('text');
+    lt.setAttribute('x', lx); lt.setAttribute('y', ly + 3);
+    lt.setAttribute('text-anchor', 'middle');
+    lt.setAttribute('fill', sec.color);
+    lt.setAttribute('font-size', '6'); lt.setAttribute('font-weight', '700');
+    lt.setAttribute('font-family', 'system-ui'); lt.setAttribute('opacity', '0.8');
+    lt.textContent = sec.label;
+    boundsGroup.appendChild(lt);
+  });
+  viewport.appendChild(boundsGroup); // 최상단 — LOD2 확대 시 구역 경계 명확히 보임
+  svgEl.appendChild(viewport);
+}
+
+/* Minimap */
+function buildMinimap(miniSvgId) {
+  const mini = document.getElementById(miniSvgId);
+  const mmVW = CASE_CONFIG[currentCase].venueW || VENUE_W;
+  const mmVH = CASE_CONFIG[currentCase].venueH || VENUE_H;
+  mini.setAttribute('viewBox', `0 0 ${mmVW} ${mmVH}`);
+  mini.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  mini.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // Background
+  const bg = document.createElementNS(ns, 'rect');
+  bg.setAttribute('width', mmVW); bg.setAttribute('height', mmVH);
+  bg.setAttribute('fill', '#F1F5F9');
+  mini.appendChild(bg);
+
+  // Decorations (rect·line만 — text는 미니맵에서 너무 작아 생략)
+  DECORATIONS.forEach(d => {
+    if (d.type === 'rect') {
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', d.x); r.setAttribute('y', d.y);
+      r.setAttribute('width', d.w); r.setAttribute('height', d.h);
+      r.setAttribute('rx', d.rx || 0); r.setAttribute('fill', d.fill);
+      r.setAttribute('pointer-events', 'none');
+      mini.appendChild(r);
+    } else if (d.type === 'line') {
+      const l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', d.x1); l.setAttribute('y1', d.y1);
+      l.setAttribute('x2', d.x2); l.setAttribute('y2', d.y2);
+      l.setAttribute('stroke', d.stroke); l.setAttribute('stroke-width', d.strokeW);
+      if (d.dash) l.setAttribute('stroke-dasharray', d.dash);
+      l.setAttribute('pointer-events', 'none');
+      mini.appendChild(l);
+    } else if (d.type === 'circle') {
+      const c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', d.cx); c.setAttribute('cy', d.cy); c.setAttribute('r', d.r);
+      c.setAttribute('fill', d.fill || 'none');
+      if (d.stroke) { c.setAttribute('stroke', d.stroke); c.setAttribute('stroke-width', d.strokeW || 1); }
+      if (d.dash) c.setAttribute('stroke-dasharray', d.dash);
+      c.setAttribute('pointer-events', 'none');
+      mini.appendChild(c);
+    }
+  });
+
+  // Sections
+  SECTIONS.forEach(sec => {
+    if (sec.shape === 'arc') {
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', arcPath(sec.cx, sec.cy, sec.r1, sec.r2, sec.a1, sec.a2));
+      p.setAttribute('fill', sec.color); p.setAttribute('opacity', '0.6');
+      p.setAttribute('pointer-events', 'none');
+      mini.appendChild(p);
+    } else {
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', sec.x); r.setAttribute('y', sec.y);
+      r.setAttribute('width', sec.w); r.setAttribute('height', sec.h);
+      r.setAttribute('fill', sec.color); r.setAttribute('opacity', '0.5'); r.setAttribute('rx', '2');
+      mini.appendChild(r);
+    }
+  });
+
+  // Stage
+  const cfgM = CASE_CONFIG[currentCase];
+  if (cfgM.stageShape === 'ellipse') {
+    const se = document.createElementNS(ns, 'ellipse');
+    se.setAttribute('cx', STAGE_X + STAGE_W / 2); se.setAttribute('cy', STAGE_Y + STAGE_H / 2);
+    se.setAttribute('rx', STAGE_W / 2); se.setAttribute('ry', STAGE_H / 2);
+    se.setAttribute('fill', '#1E293B'); mini.appendChild(se);
+  } else {
+    const stage = document.createElementNS(ns, 'rect');
+    stage.setAttribute('x', STAGE_X); stage.setAttribute('y', STAGE_Y);
+    stage.setAttribute('width', STAGE_W); stage.setAttribute('height', STAGE_H);
+    stage.setAttribute('fill', '#1E293B'); stage.setAttribute('rx', '4');
+    mini.appendChild(stage);
+  }
+}
+
+/* ============================================================
+   US-11: 선택 좌석 위치 안내
+   - 좌석이 화면에서 10px 미만(육안 식별 어려움)일 때만 인디케이터 표시
+   - 실제 선택 좌석 좌표에 마커를 그림 (구역 중앙 X)
+   ============================================================ */
+function updateLv1Indicators(mode) {
+  const viewport = document.getElementById(`map-viewport-${mode}`);
+  if (!viewport) return;
+  const old = document.getElementById(`lv1-indicators-${mode}`);
+  if (old) old.remove();
+
+  const us10On = document.getElementById('toggle-us10');
+  if (us10On && !us10On.checked) return;
+  if (!selectedSeats.length) return;
+
+  // 좌석 화면 크기(px) = SEAT_SIZE × 현재 scale
+  // 10px 이상이면 육안으로 충분히 식별 가능 → 인디케이터 불필요
+  const seatScreenPx = SEAT_SIZE * transforms[mode].scale;
+  if (seatScreenPx >= 10) return;
+
+  const g = svgEl2('g');
+  g.setAttribute('id', `lv1-indicators-${mode}`);
+  g.setAttribute('pointer-events', 'none');
+
+  // 개별 선택 좌석 실제 위치에 마커
+  selectedSeats.forEach(seat => {
+    const cx = seat.x + seat.w / 2;
+    const cy = seat.y + seat.h / 2;
+
+    const outer = svgEl2('circle');
+    outer.setAttribute('cx', cx); outer.setAttribute('cy', cy);
+    outer.setAttribute('r', 11);
+    outer.setAttribute('fill', 'white'); outer.setAttribute('opacity', '0.92');
+    g.appendChild(outer);
+
+    const inner = svgEl2('circle');
+    inner.setAttribute('cx', cx); inner.setAttribute('cy', cy);
+    inner.setAttribute('r', 5);
+    inner.setAttribute('fill', '#00C853');
+    g.appendChild(inner);
+  });
+
+  viewport.appendChild(g);
+}
+
+/* ============================================================
+   SEAT INTERACTION
+   ============================================================ */
+function selectSeat(seat, mode) {
+  if (seat.state === 'unavailable') return;
+  if (seat.seatType === 'accessible') return;
+  const existingIdx = selectedSeats.findIndex(s => s.id === seat.id);
+  if (existingIdx !== -1) {
+    seat.state = seat._origState;
+    selectedSeats.splice(existingIdx, 1);
+    updateSeatVisual(seat, seat.state, 'm');
+    updateSeatVisual(seat, seat.state, 'pc');
+    showNotif(`${seat.label} ${seat.row}열 ${seat.col}번 선택 취소`);
+    updateBottomPanel();
+    return;
+  }
+  if (selectedSeats.length >= personCount) {
+    showNotif('선택할 수 있는 좌석 수를 초과했습니다.');
+    return;
+  }
+  seat._origState = seat.state;
+  seat.state = 'selected';
+  selectedSeats.push(seat);
+  updateSeatVisual(seat, 'selected', 'm');
+  updateSeatVisual(seat, 'selected', 'pc');
+  showNotif(`${seat.label} ${seat.row}열 ${seat.col}번 선택됨`);
+  updateBottomPanel();
+  highlightSectionInList(seat.section);
+}
+
+function updateSeatVisual(seat, state, mode) {
+  const el = document.getElementById(`seat-rect-${mode}-${seat.idx}`);
+  if (!el) return;
+  const isSelected = (state === 'selected');
+  if (isSelected) {
+    el.setAttribute('fill', 'white');
+    el.setAttribute('stroke', GRADE_COLOR_MAP[seat.section] || '#3B82F6');
+    el.setAttribute('stroke-width', '2');
+    el.setAttribute('x', seat.x - 1); el.setAttribute('y', seat.y - 1);
+    el.setAttribute('width', seat.w + 2); el.setAttribute('height', seat.h + 2);
+  } else {
+    el.setAttribute('fill', seatColor(seat));
+    el.setAttribute('stroke', 'none'); el.setAttribute('stroke-width', '0');
+    el.setAttribute('x', seat.x); el.setAttribute('y', seat.y);
+    el.setAttribute('width', seat.w); el.setAttribute('height', seat.h);
+  }
+  updateLv1Indicators('m');
+  updateLv1Indicators('pc');
+}
+
+
+/* ============================================================
+   BOTTOM PANEL (mobile)
+   ============================================================ */
+function updateBottomPanel() {
+  const bs = document.getElementById('bottom-sheet');
+  if (!bs) return;
+  if (!selectedSeats.length) {
+    bs.className = 'empty';
+    bs.innerHTML = '<p class="empty-hint">좌석을 선택해주세요</p>';
+    return;
+  }
+  const last = selectedSeats[selectedSeats.length - 1];
+  const seatGrade = GRADES.find(g => g.id === SECTIONS.find(s => s.id === last.section)?.gradeId);
+  bs.className = 'has-seat';
+  bs.innerHTML = `
+    <div class="seat-info-card">
+      <div class="seat-info-icon">🪑</div>
+      <div class="seat-info-text">
+        <div class="seat-id">${last.label} ${last.row}열 ${last.col}번</div>
+        <div class="seat-price">${seatGrade ? '[' + seatGrade.label + '] ' : ''}${last.price.toLocaleString()}원</div>
+      </div>
+    </div>
+    <button class="cta-btn" onclick="confirmSeat()">선택 완료 →</button>`;
+
+  // PC panel
+  const pcArea = document.getElementById('pc-seat-area');
+  const pcCta = document.getElementById('pc-cta-btn');
+  if (pcArea) {
+    pcArea.innerHTML = `<div class="pc-seat-card"><div class="pc-seat-id">${last.label} ${last.row}열 ${last.col}번</div><div class="pc-seat-price">${seatGrade ? '[' + seatGrade.label + '] ' : ''}${last.price.toLocaleString()}원</div></div>`;
+  }
+  if (pcCta) pcCta.disabled = false;
+}
+
+function confirmSeat() {
+  const info = selectedSeats.map(s => `${s.label} ${s.row}열 ${s.col}번 (${s.price.toLocaleString()}원)`).join('\n');
+  alert(`✅ 좌석 점유 완료!\n${info}\n\n결제 단계로 이동합니다.`);
+}
+
+/* ============================================================
+   ZOOM & PAN
+   ============================================================ */
+function applyTransform(mode) {
+  const t = transforms[mode];
+  const viewport = document.getElementById(`map-viewport-${mode}`);
+  if (!viewport) return;
+  viewport.setAttribute('transform', `translate(${t.tx}, ${t.ty}) scale(${t.scale})`);
+  updateMinimap(mode);
+  updateLOD(mode);
+  updateLv1Indicators(mode); // 줌 변경마다 재계산 (표시 여부 + 위치)
+}
+
+function doZoom(mode, factor) {
+  if (_anims[mode]) { cancelAnimationFrame(_anims[mode]); delete _anims[mode]; }
+  const t = transforms[mode];
+  const c = getContainer(mode);
+  const cw = c.clientWidth, ch = c.clientHeight;
+  const fitScale = getFitScale(mode);
+  const newScale = t.scale * factor;
+  if (newScale <= fitScale) {
+    const fitT = getFitTransform(mode);
+    if (fitT) animateTransformTo(mode, fitT, 320);
+    return;
+  }
+  const bounded = Math.min(newScale, getMaxScale(mode));
+  const sf = bounded / t.scale;
+  t.tx = cw / 2 - sf * (cw / 2 - t.tx);
+  t.ty = ch / 2 - sf * (ch / 2 - t.ty);
+  t.scale = bounded;
+  clampTransform(mode);
+  applyTransform(mode);
+}
+
+function resetZoom(mode) {
+  goToOverview(mode);
+}
+
+function clampTransform(mode) {
+  const t = transforms[mode];
+  const c = getContainer(mode);
+  if (!c) return;
+  const cw = c.clientWidth, ch = c.clientHeight;
+  const minS = getFitScale(mode);
+  t.scale = Math.max(minS, Math.min(getMaxScale(mode), t.scale));
+  const fb = CASE_CONFIG[currentCase].fitBounds;
+  const cntW = fb ? fb.w : VENUE_W;
+  const cntH = fb ? fb.h : VENUE_H;
+  const offX = fb ? fb.x : 0;
+  const offY = fb ? fb.y : 0;
+  const mapW = cntW * t.scale, mapH = cntH * t.scale;
+  if (mapW <= cw) t.tx = (cw - mapW) / 2 - offX * t.scale;
+  else            t.tx = Math.min(-offX * t.scale, Math.max(cw - (offX + cntW) * t.scale, t.tx));
+  if (mapH <= ch) t.ty = (ch - mapH) / 2 - offY * t.scale;
+  else            t.ty = Math.min(-offY * t.scale, Math.max(ch - (offY + cntH) * t.scale, t.ty));
+}
+
+/* Wheel zoom */
+function setupWheelZoom(containerId, mode) {
+  const el = document.getElementById(containerId);
+  el.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (_anims[mode]) { cancelAnimationFrame(_anims[mode]); delete _anims[mode]; }
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    const fitScale = getFitScale(mode);
+    const t = transforms[mode];
+    const newScale = t.scale * factor;
+    if (newScale <= fitScale) {
+      const fitT = getFitTransform(mode);
+      if (fitT) animateTransformTo(mode, fitT, 180);
+      return;
+    }
+    const bounded = Math.min(newScale, getMaxScale(mode));
+    const rect = el.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const sf = bounded / t.scale;
+    t.tx = mx - sf * (mx - t.tx);
+    t.ty = my - sf * (my - t.ty);
+    t.scale = bounded;
+    clampTransform(mode);
+    applyTransform(mode);
+  }, { passive: false });
+}
+
+/* Drag pan */
+function setupDragPan(containerId, mode) {
+  const container = document.getElementById(containerId);
+  let dragging = false, wasDrag = false, startX, startY, startTx, startTy;
+  container.addEventListener('mousedown', (e) => {
+    dragging = true; wasDrag = false;
+    startX = e.clientX; startY = e.clientY;
+    startTx = transforms[mode].tx; startTy = transforms[mode].ty;
+    container.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!wasDrag && Math.sqrt(dx * dx + dy * dy) > 5) wasDrag = true;
+    transforms[mode].tx = startTx + dx;
+    transforms[mode].ty = startTy + dy;
+    clampTransform(mode);
+    applyTransform(mode);
+  });
+  window.addEventListener('mouseup', () => {
+    if (wasDrag) window.addEventListener('click', (ev) => { ev._wasDrag = true; }, { once: true, capture: true });
+    dragging = false; container.classList.remove('grabbing');
+  });
+}
+
+/* Touch gestures */
+function setupTouchGestures(containerId, mode) {
+  const el = document.getElementById(containerId);
+  let lastTouches = null, lastDist = null;
+  let touchStartX, touchStartY, touchMoved = false;
+  el.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      const t0 = e.touches[0];
+      lastTouches = { x: t0.clientX, y: t0.clientY };
+      touchStartX = t0.clientX; touchStartY = t0.clientY;
+      touchMoved = false; lastDist = null;
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      lastDist = Math.sqrt(dx * dx + dy * dy);
+    }
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && lastTouches) {
+      const dx = e.touches[0].clientX - lastTouches.x;
+      const dy = e.touches[0].clientY - lastTouches.y;
+      const tdx = e.touches[0].clientX - touchStartX;
+      const tdy = e.touches[0].clientY - touchStartY;
+      if (Math.sqrt(tdx * tdx + tdy * tdy) > 8) touchMoved = true;
+      lastTouches = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      transforms[mode].tx += dx; transforms[mode].ty += dy;
+      clampTransform(mode); applyTransform(mode);
+    } else if (e.touches.length === 2 && lastDist !== null) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const factor = dist / lastDist;
+      const t = transforms[mode];
+      const rect = el.getBoundingClientRect();
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+      const fitScale = getFitScale(mode);
+      const newScale = t.scale * factor;
+      if (newScale <= fitScale) {
+        const fitT = getFitTransform(mode);
+        if (fitT) { Object.assign(transforms[mode], fitT); applyTransform(mode); }
+        lastDist = dist; return;
+      }
+      const bounded = Math.min(newScale, getMaxScale(mode));
+      const sf = bounded / t.scale;
+      t.tx = midX - sf * (midX - t.tx); t.ty = midY - sf * (midY - t.ty);
+      t.scale = bounded; lastDist = dist;
+      clampTransform(mode); applyTransform(mode);
+    }
+  }, { passive: false });
+  el.addEventListener('touchend', (e) => {
+    if (!touchMoved && e.changedTouches.length === 1) {
+      const t = e.changedTouches[0];
+      const target = document.elementFromPoint(t.clientX, t.clientY);
+      const seatId = target?.getAttribute?.('data-seat');
+      if (seatId) {
+        const seat = allSeats.find(s => s.id === seatId);
+        if (seat && seat.state !== 'unavailable') {
+          if (pendingTap[mode]?.id === seat.id) {
+            // 2차 탭 → 선택
+            selectSeat(seat, mode);
+            pendingTap[mode] = null;
+            hideTooltip(mode);
+          } else {
+            // 1차 탭 → 툴팁 표시 + 대기
+            pendingTap[mode] = seat;
+            showMobileTooltip(t.clientX, t.clientY, seat, mode, true);
+          }
+        }
+      } else {
+        // 좌석 외 영역 탭 → 대기 초기화
+        pendingTap[mode] = null;
+        hideTooltip(mode);
+      }
+    }
+    lastTouches = null; lastDist = null; touchMoved = false;
+  }, { passive: true });
+}
+
+/* ============================================================
+   LOD
+   ============================================================ */
+function updateLOD(mode) {
+  if (!transforms[mode]) return;
+  const relScale = transforms[mode].scale / getFitScale(mode);
+  const cfg = CASE_CONFIG[currentCase];
+
+  // LOD labels
+  const updateLabel = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (relScale < LOD_THRESHOLD - LOD_FADE_ZONE)
+      el.textContent = cfg.lodLabel.overview;
+    else if (relScale < LOD_THRESHOLD + LOD_FADE_ZONE)
+      el.textContent = cfg.lodLabel.transit;
+    else
+      el.textContent = cfg.lodLabel.seats;
+  };
+  if (mode === 'm') updateLabel('lod-label');
+  if (mode === 'pc') updateLabel('lod-label-pc');
+
+  // Crossfade blocks ↔ seats
+  ['m', 'pc'].forEach(m => {
+    if (!transforms[m]) return;
+    const blocks    = document.getElementById(`section-blocks-${m}`);
+    const seats     = document.getElementById(`seats-${m}`);
+    const typeIcons = document.getElementById(`seat-type-icons-${m}`);
+
+    if (currentCase === 'A' || currentCase === 'C') {
+      // Case A/C: 구역 블록 없음 — 항상 개별 좌석만 표시
+      if (blocks)    { blocks.style.opacity = 0; blocks.style.pointerEvents = 'none'; }
+      if (seats)     { seats.style.opacity  = 1; seats.style.pointerEvents  = 'auto'; }
+      if (typeIcons) { typeIcons.style.opacity = 1; }
+      return;
+    }
+
+    // Case B: 줌 레벨에 따라 블록 ↔ 좌석 크로스페이드
+    const rel = transforms[m].scale / getFitScale(m);
+    const lo = LOD_THRESHOLD - LOD_FADE_ZONE;
+    const hi = LOD_THRESHOLD + LOD_FADE_ZONE;
+    const blocksOp = rel <= lo ? 1 : rel >= hi ? 0 : 1 - (rel - lo) / (hi - lo);
+    const seatsOp  = rel <= lo ? 0 : rel >= hi ? 1 : (rel - lo) / (hi - lo);
+    if (blocks)    { blocks.style.opacity = blocksOp; blocks.style.pointerEvents = blocksOp > 0.1 ? 'auto' : 'none'; }
+    if (seats)     { seats.style.opacity  = seatsOp;  seats.style.pointerEvents  = seatsOp  > 0.1 ? 'auto' : 'none'; }
+    if (typeIcons) { typeIcons.style.opacity = seatsOp; }  // seats와 동기화
+  });
+
+  // boundsGroup fade-out: LOD2 진입 후 고배율에서 점진적으로 숨김 (arc 케이스 전용)
+  ['m', 'pc'].forEach(m => {
+    const bounds = document.getElementById(`section-bounds-${m}`);
+    if (!bounds) return;
+    const rel = transforms[m] ? transforms[m].scale / getFitScale(m) : 1;
+    const BOUNDS_LO = 3.0, BOUNDS_HI = 4.5;
+    const boundsOp = rel <= BOUNDS_LO ? 1 : rel >= BOUNDS_HI ? 0 : 1 - (rel - BOUNDS_LO) / (BOUNDS_HI - BOUNDS_LO);
+    bounds.style.opacity = boundsOp;
+  });
+
+  // Minimap visibility: fit scale보다 조금이라도 확대되면 표시
+  const mm = mode === 'm' ? document.getElementById('minimap') : document.getElementById('minimap-pc');
+  if (mm) mm.classList.toggle('visible', relScale > 1.05);
+}
+
+function updateMinimap(mode) {
+  const t = transforms[mode];
+  const container = mode === 'm' ? document.getElementById('map-container-m') : document.getElementById('pc-map-container');
+  const vpEl = mode === 'm' ? document.getElementById('minimap-viewport') : document.getElementById('minimap-pc-viewport');
+  const mmEl = mode === 'm' ? document.getElementById('minimap') : document.getElementById('minimap-pc');
+  if (!container || !vpEl || !mmEl) return;
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const mmW = mmEl.clientWidth, mmH = mmEl.clientHeight;
+  const umVW = CASE_CONFIG[currentCase].venueW || VENUE_W;
+  const umVH = CASE_CONFIG[currentCase].venueH || VENUE_H;
+  const scaleX = mmW / umVW, scaleY = mmH / umVH;
+  const vpX = (-t.tx / t.scale) * scaleX;
+  const vpY = (-t.ty / t.scale) * scaleY;
+  vpEl.style.left   = Math.max(0, vpX) + 'px';
+  vpEl.style.top    = Math.max(0, vpY) + 'px';
+  vpEl.style.width  = Math.min(mmW, (cw / t.scale) * scaleX) + 'px';
+  vpEl.style.height = Math.min(mmH, (ch / t.scale) * scaleY) + 'px';
+}
+
+/* ============================================================
+   TOOLTIP
+   ============================================================ */
+function _placeTooltip(tip, clientX, clientY, container, isPending) {
+  const rect = container.getBoundingClientRect();
+  tip.style.display = 'block';
+  // 초기 위치 (커서 오른쪽 위)
+  let left = clientX - rect.left + 10;
+  let top  = clientY - rect.top  - 36;
+  // 경계 보정 — offsetWidth/Height는 display:block 후에 유효
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const cw = container.clientWidth, ch = container.clientHeight;
+  if (left + tw > cw - 6) left = clientX - rect.left - tw - 10; // 오른쪽 넘침 → 왼쪽
+  if (top < 6)            top  = clientY - rect.top  + 16;      // 위 넘침 → 아래
+  if (top + th > ch - 6)  top  = ch - th - 6;                   // 아래 넘침 → 위로 밀기
+  tip.style.left = Math.max(4, left) + 'px';
+  tip.style.top  = Math.max(4, top)  + 'px';
+}
+
+function showTooltip(e, seat, mode) {
+  if (seat.state === 'unavailable') return;
+  const tip = document.getElementById(mode === 'm' ? 'seat-tooltip' : 'seat-tooltip-pc');
+  const container = mode === 'm' ? document.getElementById('map-container-m') : document.getElementById('pc-map-container');
+  const seatGrade = GRADES.find(g => g.id === SECTIONS.find(s => s.id === seat.section)?.gradeId);
+  const typeLabel = seat.seatType && (us11On() || seat.seatType === 'accessible') ? ` · ${SEAT_TYPES[seat.seatType]?.icon} ${SEAT_TYPES[seat.seatType]?.label}` : '';
+  tip.textContent = `${seatGrade ? '[' + seatGrade.label + '] ' : ''}${seat.label} ${seat.row}열 ${seat.col}번${typeLabel}`;
+  tip.style.outline = 'none';
+  _placeTooltip(tip, e.clientX, e.clientY, container, false);
+}
+
+function showMobileTooltip(clientX, clientY, seat, mode, isPending) {
+  if (seat.state === 'unavailable') return;
+  const tip = document.getElementById(mode === 'm' ? 'seat-tooltip' : 'seat-tooltip-pc');
+  const container = mode === 'm' ? document.getElementById('map-container-m') : document.getElementById('pc-map-container');
+  const seatGrade = GRADES.find(g => g.id === SECTIONS.find(s => s.id === seat.section)?.gradeId);
+  const isSelectedSeat = selectedSeats.some(s => s.id === seat.id);
+  const hint = isPending
+    ? (isSelectedSeat ? ' · 한 번 더 탭하면 취소' : ' · 한 번 더 탭하면 선택')
+    : '';
+  const typeLabel = seat.seatType && (us11On() || seat.seatType === 'accessible') ? ` · ${SEAT_TYPES[seat.seatType]?.icon} ${SEAT_TYPES[seat.seatType]?.label}` : '';
+  tip.textContent = `${seatGrade ? '[' + seatGrade.label + '] ' : ''}${seat.label} ${seat.row}열 ${seat.col}번${typeLabel}${hint}`;
+  tip.style.outline = isPending
+    ? (isSelectedSeat ? '2px solid #EF4444' : '2px solid #00C853')
+    : 'none';
+  _placeTooltip(tip, clientX, clientY, container, isPending);
+}
+
+function hideTooltip(mode) {
+  const tip = document.getElementById(mode === 'm' ? 'seat-tooltip' : 'seat-tooltip-pc');
+  if (tip) tip.style.display = 'none';
+}
+
+/* ============================================================
+   LEGEND
+   ============================================================ */
+function buildLegend() {
+  const bar = document.getElementById('legend-bar-m');
+  if (!bar) return;
+  const activeGradeIds = new Set(SECTIONS.map(s => s.gradeId));
+  bar.innerHTML =
+    GRADES.filter(g => activeGradeIds.has(g.id)).map(g => `<div class="legend-item"><div class="legend-dot" style="background:${g.color}"></div>${g.label}</div>`).join('') +
+    `<div class="legend-item"><div class="legend-dot" style="background:#CBD5E1"></div>선택 불가</div>` +
+    `<div class="legend-item"><div class="legend-dot" style="background:white;outline:2px solid #3B82F6;outline-offset:0px"></div>선택됨</div>`;
+}
+
+/* ============================================================
+   PC SECTION LIST
+   ============================================================ */
+function buildPcSectionList() {
+  const list = document.getElementById('pc-section-list');
+  if (!list) return;
+  list.innerHTML = SECTIONS.map(sec => {
+    return `<div class="pc-section-item" id="pc-sec-${sec.id}" onclick="animateToSection('${sec.id}','pc')">
+      <div class="sec-left">
+        <div class="sec-dot" style="background:${sec.color}"></div>
+        <div class="sec-name">${sec.label}</div>
+      </div>
+      <div class="sec-price">${sec.price.toLocaleString()}원~</div>
+    </div>`;
+  }).join('');
+}
+
+
+function highlightSectionInList(secId) {
+  document.querySelectorAll('.pc-section-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`pc-sec-${secId}`);
+  if (el) el.classList.add('selected');
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function startTimer() {
+  if (timerId) return;
+  timerId = setInterval(() => {
+    timerSecs = Math.max(0, timerSecs - 1);
+    const m = Math.floor(timerSecs / 60), s = timerSecs % 60;
+    const str = `${m}:${s.toString().padStart(2, '0')}`;
+    const mEl = document.getElementById('m-timer');
+    const pcEl = document.getElementById('pc-timer');
+    if (mEl) { mEl.textContent = `⏱ ${str}`; if (timerSecs < 60) mEl.style.animation = 'pulse 1s infinite'; }
+    if (pcEl) pcEl.textContent = str;
+    if (timerSecs <= 0) {
+      clearInterval(timerId); timerId = null;
+      showNotif('⏰ 선택 시간이 만료되었습니다');
+    }
+  }, 1000);
+}
+
+/* ============================================================
+   NOTIFICATION
+   ============================================================ */
+let notifTimer;
+function showNotif(msg) {
+  document.querySelectorAll('.toast-notif').forEach(el => { el.textContent = msg; el.classList.add('show'); });
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => {
+    document.querySelectorAll('.toast-notif').forEach(el => el.classList.remove('show'));
+  }, 2000);
+}
+
+/* ============================================================
+   PERSON COUNT
+   ============================================================ */
+function updatePersonCount(v) {
+  personCount = parseInt(v);
+  while (selectedSeats.length > personCount) {
+    const removed = selectedSeats.pop();
+    removed.state = removed._origState;
+    updateSeatVisual(removed, removed.state, 'm');
+    updateSeatVisual(removed, removed.state, 'pc');
+  }
+  updateBottomPanel();
+}
+
+/* ============================================================
+   CASE SWITCH
+   ============================================================ */
+function switchCase(c) {
+  if (currentCase === c) return;
+  currentCase = c;
+  const cfg = CASE_CONFIG[c];
+
+  // Update case cards
+  document.querySelectorAll('.case-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.case === c);
+  });
+  // US-02 toggle은 Case D/E에서만 활성화
+  const toggleUs02 = document.getElementById('toggle-us02');
+  if (toggleUs02) {
+    const isAvailCase = c === 'D' || c === 'E';
+    toggleUs02.style.opacity = isAvailCase ? '1' : '0.4';
+    toggleUs02.style.pointerEvents = isAvailCase ? 'auto' : 'none';
+    if (!isAvailCase) {
+      const cb = document.getElementById('avail-color-on');
+      if (cb) cb.checked = false;
+    }
+  }
+
+  // Update labels
+  document.getElementById('m-venue-name').textContent = cfg.venueName;
+  document.getElementById('m-concert-sub').textContent = cfg.concertSub;
+  document.getElementById('pc-venue-name').textContent = cfg.venueName;
+  document.getElementById('pc-concert-sub').textContent = cfg.concertSub;
+  document.getElementById('m-case-ann').textContent = cfg.annotation;
+  document.getElementById('pc-case-ann').textContent = cfg.annotation;
+
+  // 스테이지 좌표 교체
+  STAGE_X = cfg.stageX; STAGE_Y = cfg.stageY; STAGE_W = cfg.stageW; STAGE_H = cfg.stageH;
+
+  // US-09 시뮬 정지 (케이스 전환 시 초기화)
+  if (sim09Active) {
+    sim09Active = false;
+    if (sim09Timer) { clearTimeout(sim09Timer); sim09Timer = null; }
+    sim09TakenSeats.clear();
+    const cb09 = document.getElementById('toggle-sim09');
+    if (cb09) cb09.checked = false;
+  }
+
+  // 케이스에 맞는 구역·좌석·데코 데이터 교체
+  SECTIONS    = c === 'A' ? SECTIONS_A : c === 'B' ? SECTIONS_B : c === 'C' ? SECTIONS_C : c === 'D' ? SECTIONS_D : SECTIONS_E;
+  DECORATIONS = c === 'A' ? DECORATIONS_A : c === 'B' ? DECORATIONS_B : c === 'E' ? DECORATIONS_E : DECORATIONS_CD;
+  allSeats = generateSeats(SECTIONS, c === 'D' ? DEMO_AVAIL_D : c === 'E' ? DEMO_AVAIL_E : {});
+  GRADE_COLOR_MAP = buildGradeColorMap(SECTIONS);
+
+  // SVG 재빌드
+  selectedSeats = [];
+  pendingTap.m = null; pendingTap.pc = null;
+  hideTooltip('m'); hideTooltip('pc');
+  resetBreadcrumb('m');
+  resetBreadcrumb('pc');
+  buildSVG(document.getElementById('map-svg'), 'm');
+  buildSVG(document.getElementById('map-svg-pc'), 'pc');
+  buildMinimap('minimap-svg-m');
+  buildMinimap('minimap-svg-pc');
+  buildLegend();
+  buildPcSectionList();
+  updateBottomPanel();
+
+  // Animate to case-specific initial transform
+  ['m', 'pc'].forEach(mode => {
+    requestAnimationFrame(() => {
+      const t = getInitialTransform(mode);
+      if (t) {
+        clampTransform(mode);
+        animateTransformTo(mode, t, 400);
+      }
+    });
+  });
+}
+
+function onAvailColorChange() {
+  buildSVG(document.getElementById('map-svg'), 'm');
+  buildSVG(document.getElementById('map-svg-pc'), 'pc');
+  buildMinimap('minimap-svg-m');
+  buildMinimap('minimap-svg-pc');
+  applyTransform('m');
+  applyTransform('pc');
+  updateLv1Indicators('m');
+  updateLv1Indicators('pc');
+}
+
+function onMinimapToggle() {
+  const show = document.getElementById('toggle-minimap').checked;
+  ['minimap', 'minimap-pc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+}
+
+function onUs10Toggle() {
+  // updateLv1Indicators가 toggle-us10 상태를 직접 읽으므로 재계산만 실행
+  ['m', 'pc'].forEach(mode => updateLv1Indicators(mode));
+}
+
+/* US-12: 좌석 유형 아이콘 그룹 채우기 */
+function _fillTypeIconGroup(g) {
+  g.innerHTML = '';
+  if (!us11On()) return;
+  allSeats.forEach(seat => {
+    if (!seat.seatType || seat.state === 'selected') return;
+    // 휠체어석: 토글 무관하게 항상 표시 (비판매 전용 좌석 구분 목적)
+    // 그 외 유형: US-12 토글 ON 시에만, 판매완료석 제외
+    if (seat.seatType !== 'accessible' && !us11On()) return;
+    if (seat.seatType !== 'accessible' && seat.state === 'unavailable') return;
+    const info = SEAT_TYPES[seat.seatType];
+    if (!info) return;
+    const t = svgEl2('text');
+    t.setAttribute('x', seat.x + seat.w / 2);
+    t.setAttribute('y', seat.y + seat.h * 0.75);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '4.5');
+    t.setAttribute('fill', info.iconColor);
+    t.setAttribute('font-weight', 'bold');
+    t.setAttribute('font-family', 'system-ui');
+    t.setAttribute('pointer-events', 'none');
+    t.textContent = info.icon;
+    g.appendChild(t);
+  });
+}
+
+function toggleLegend(mode) {
+  const rows = document.getElementById(`stype-rows-${mode}`);
+  const btn  = document.getElementById(`stype-toggle-${mode}`);
+  if (!rows) return;
+  const open = rows.classList.toggle('open');
+  if (btn) btn.textContent = open ? '좌석 유형 ▴' : '좌석 유형 ▾';
+}
+
+function onUs11Toggle() {
+  // 1. 좌석 색상 갱신
+  allSeats.forEach(seat => {
+    ['m', 'pc'].forEach(mode => updateSeatVisual(seat, seat.state, mode));
+  });
+  // 2. 아이콘 레이어 갱신
+  ['m', 'pc'].forEach(mode => {
+    const g = document.getElementById(`seat-type-icons-${mode}`);
+    if (g) _fillTypeIconGroup(g);
+  });
+  // 3. 범례 오버레이 토글
+  ['seat-type-legend-m', 'seat-type-legend-pc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('visible', us11On());
+  });
+  // 4. 하단 등급 범례 갱신
+  buildLegend();
+}
+
+function onDecoToggle() {
+  const show = document.getElementById('toggle-deco').checked;
+  ['m', 'pc'].forEach(mode => {
+    const viewport = document.getElementById(`map-viewport-${mode}`);
+    if (!viewport) return;
+    const gs = viewport.querySelectorAll(':scope > g');
+    if (gs[0]) gs[0].style.display = show ? '' : 'none'; // decoG
+  });
+}
+
+/* ============================================================
+   US-09: 좌석 상태 실시간 반영 시뮬레이션
+   - 무대 중심까지 거리 기준으로 정렬 → 앞자리 우선 선점
+   - 100~300ms 간격, 1~3석씩 빠르게 선점
+   - 20% 확률로 선점 좌석 중 랜덤 1석 취소 반영
+   ============================================================ */
+let sim09Active = false;
+let sim09Timer = null;
+const sim09TakenSeats = new Set();
+
+function getStageDist(seat) {
+  const stageCx = STAGE_X + STAGE_W / 2;
+  const stageCy = STAGE_Y + STAGE_H / 2;
+  return Math.sqrt((seat.x + SEAT_SIZE / 2 - stageCx) ** 2 + (seat.y + SEAT_SIZE / 2 - stageCy) ** 2);
+}
+
+function sim09Flash(seat, flashColor, finalColor) {
+  ['m', 'pc'].forEach(mode => {
+    const el = document.getElementById(`seat-rect-${mode}-${seat.idx}`);
+    if (!el) return;
+    el.setAttribute('fill', flashColor);
+    setTimeout(() => el.setAttribute('fill', finalColor), 180);
+  });
+}
+
+function startSim09() {
+  function tick() {
+    if (!sim09Active) return;
+
+    const userSelectedIds = new Set(selectedSeats.map(s => s.id));
+    const available = allSeats.filter(s => s.state === 'available' && !userSelectedIds.has(s.id));
+
+    if (available.length > 0) {
+      // 무대 거리 기준 정렬 (오름차순 = 앞자리)
+      available.sort((a, b) => getStageDist(a) - getStageDist(b));
+
+      // 80% 확률로 앞 20%에서, 20% 확률로 전체에서 선택
+      const frontCut = Math.max(1, Math.floor(available.length * 0.20));
+      const pool = Math.random() < 0.80 ? available.slice(0, frontCut) : available;
+
+      // 1~3석 선점 (정렬된 pool 앞쪽 상위 5개 중 랜덤)
+      const count = Math.random() < 0.4 ? 3 : Math.random() < 0.55 ? 2 : 1;
+      const pickFrom = pool.slice(0, Math.min(5, pool.length));
+      const picked = new Set();
+      for (let i = 0; i < count; i++) {
+        if (!pickFrom.length) break;
+        const ri = Math.floor(Math.random() * pickFrom.length);
+        const seat = pickFrom.splice(ri, 1)[0];
+        if (!seat || picked.has(seat.id)) continue;
+        picked.add(seat.id);
+        seat.state = 'unavailable';
+        sim09TakenSeats.add(seat.id);
+        sim09Flash(seat, '#EF4444', STATE_COLORS.unavailable);
+      }
+    }
+
+    // 20% 확률로 시뮬 선점 좌석 1석 취소 (이선좌 해제 연출)
+    if (Math.random() < 0.20 && sim09TakenSeats.size > 3) {
+      const takenArr = allSeats.filter(s => sim09TakenSeats.has(s.id));
+      // 뒤쪽(원거리) 좌석부터 취소되도록 정렬 후 후반부에서 선택
+      takenArr.sort((a, b) => getStageDist(b) - getStageDist(a));
+      const cancelPool = takenArr.slice(0, Math.max(1, Math.floor(takenArr.length * 0.4)));
+      const seat = cancelPool[Math.floor(Math.random() * cancelPool.length)];
+      if (seat) {
+        seat.state = 'available';
+        sim09TakenSeats.delete(seat.id);
+        sim09Flash(seat, '#00C853', GRADE_COLOR_MAP[seat.section] || '#3B82F6');
+      }
+    }
+
+    // US-02 잔여석 컬러 강도가 켜져 있으면 블록 색 갱신
+    if ((currentCase === 'D' || currentCase === 'E') && document.getElementById('avail-color-on')?.checked) {
+      ['m', 'pc'].forEach(mode => {
+        const bg = document.getElementById(`section-blocks-${mode}`);
+        if (!bg) return;
+        bg.querySelectorAll('path, rect').forEach((el, i) => {
+          const sec = SECTIONS[Math.floor(i / 2)]; // path + text 쌍
+          if (!sec) return;
+          const style = getZoneBlockStyle(sec.id);
+          if (el.tagName.toLowerCase() !== 'text') el.setAttribute('fill', style.fill);
+        });
+      });
+    }
+
+    const delay = 100 + Math.random() * 200;
+    sim09Timer = setTimeout(tick, delay);
+  }
+  tick();
+}
+
+function stopSim09() {
+  if (sim09Timer) { clearTimeout(sim09Timer); sim09Timer = null; }
+  sim09TakenSeats.forEach(seatId => {
+    const seat = allSeats.find(s => s.id === seatId);
+    if (!seat) return;
+    seat.state = 'available';
+    ['m', 'pc'].forEach(mode => {
+      const el = document.getElementById(`seat-rect-${mode}-${seat.idx}`);
+      if (el) el.setAttribute('fill', GRADE_COLOR_MAP[seat.section] || '#3B82F6');
+    });
+  });
+  sim09TakenSeats.clear();
+}
+
+function onSim09Toggle() {
+  sim09Active = document.getElementById('toggle-sim09').checked;
+  if (sim09Active) startSim09();
+  else stopSim09();
+}
+
+/* ============================================================
+   US REFERENCE PANEL
+   ============================================================ */
+function toggleUsPanel() {
+  const list = document.getElementById('us-list');
+  const toggle = document.getElementById('us-panel-toggle');
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  toggle.classList.toggle('open', !isOpen);
+}
+
+function toggleUs(header) {
+  const detail = header.nextElementSibling;
+  const chevron = header.querySelector('.us-chevron');
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+/* ============================================================
+   VIEW SWITCH (mobile / PC)
+   ============================================================ */
+function switchView(mode) {
+  document.querySelectorAll('#view-switch button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('mobile-device').style.display = mode === 'mobile' ? 'block' : 'none';
+  document.getElementById('pc-device').style.display = mode === 'pc' ? 'block' : 'none';
+  if (mode === 'pc') {
+    requestAnimationFrame(() => {
+      const t = getInitialTransform('pc');
+      if (t) { Object.assign(transforms.pc, t); applyTransform('pc'); }
+    });
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init() {
+  // Mobile
+  buildSVG(document.getElementById('map-svg'), 'm');
+  buildMinimap('minimap-svg-m');
+  setupWheelZoom('map-container-m', 'm');
+  setupDragPan('map-container-m', 'm');
+  setupTouchGestures('map-container-m', 'm');
+
+  // PC
+  buildSVG(document.getElementById('map-svg-pc'), 'pc');
+  buildMinimap('minimap-svg-pc');
+  setupWheelZoom('pc-map-container', 'pc');
+  setupDragPan('pc-map-container', 'pc');
+  setupTouchGestures('pc-map-container', 'pc');
+
+  buildLegend();
+  buildPcSectionList();
+
+  // Set initial case annotation
+  const cfg = CASE_CONFIG[currentCase];
+  document.getElementById('m-case-ann').textContent = cfg.annotation;
+  document.getElementById('pc-case-ann').textContent = cfg.annotation;
+
+  // Fit-to-screen → then apply case-specific initial zoom
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function tryInit() {
+      const t = getInitialTransform('m');
+      if (t) { Object.assign(transforms.m, t); clampTransform('m'); applyTransform('m'); }
+      else requestAnimationFrame(tryInit);
+    });
+  });
+
+  // US-02 toggle 초기 비활성화 (Case A로 시작)
+  const toggleUs02Init = document.getElementById('toggle-us02');
+  if (toggleUs02Init) {
+    toggleUs02Init.style.opacity = '0.4';
+    toggleUs02Init.style.pointerEvents = 'none';
+  }
+
+  startTimer();
+})();
+</script>
+</div>
+</body>
+</html>
