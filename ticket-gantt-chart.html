@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>베리즈 티켓 — 마일스톤 간트차트</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #d8d6cc;
+    --baseline: #b6b4a9;
+    --border: rgba(11,11,11,0.10);
+    --lane-bg: #f4f3f0;
+    --row-alt: rgba(11,11,11,0.025);
+
+    --accent: #2a78d6;
+    --accent-soft: #cde2fb;
+    --good: #ed1a79;
+    --good-soft: #fde3f0;
+    --warn: #fbb6d2;
+    --warn-soft: #fef0f6;
+    --critical: #d03b3b;
+    --critical-soft: #fbe1e1;
+    --todo-fill: #eceae4;
+    --todo-border: #b6b4a9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #9a988f;
+      --grid: #35342f;
+      --baseline: #4a4941;
+      --border: rgba(255,255,255,0.12);
+      --lane-bg: #212120;
+      --row-alt: rgba(255,255,255,0.03);
+
+      --accent: #3987e5;
+      --accent-soft: #16324f;
+      --good: #ff5fa2;
+      --good-soft: #3a1a2b;
+      --warn: #e88ab0;
+      --warn-soft: #33202a;
+      --critical: #e2665b;
+      --critical-soft: #3a1414;
+      --todo-fill: #262624;
+      --todo-border: #4a4941;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-1: #1a1a19; --page: #0d0d0d; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #9a988f;
+    --grid: #35342f; --baseline: #4a4941; --border: rgba(255,255,255,0.12); --lane-bg: #212120; --row-alt: rgba(255,255,255,0.03);
+    --accent: #3987e5; --accent-soft: #16324f; --good: #ff5fa2; --good-soft: #3a1a2b;
+    --warn: #e88ab0; --warn-soft: #33202a; --critical: #e2665b; --critical-soft: #3a1414;
+    --todo-fill: #262624; --todo-border: #4a4941;
+  }
+  :root[data-theme="light"] {
+    --surface-1: #fcfcfb; --page: #f9f9f7; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #d8d6cc; --baseline: #b6b4a9; --border: rgba(11,11,11,0.10); --lane-bg: #f4f3f0; --row-alt: rgba(11,11,11,0.025);
+    --accent: #2a78d6; --accent-soft: #cde2fb; --good: #ed1a79; --good-soft: #fde3f0;
+    --warn: #fbb6d2; --warn-soft: #fef0f6; --critical: #d03b3b; --critical-soft: #fbe1e1;
+    --todo-fill: #eceae4; --todo-border: #b6b4a9;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--page); color: var(--ink); }
+  body {
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    padding: 32px 20px 56px;
+  }
+  .mono { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  /* header */
+  .head { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--ink-2); }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  /* legend */
+  .legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px;
+    font-size: 12.5px; color: var(--ink-2);
+    padding: 10px 16px; background: var(--lane-bg); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 16px; height: 10px; border-radius: 3px; flex: none; }
+  .swatch.good { background: var(--good); }
+  .swatch.warn { background: var(--warn); }
+  .swatch.todo { background: var(--todo-fill); border: 1.5px solid var(--todo-border); }
+  .swatch.launch { background: var(--good); border-radius: 2px; width: 10px; height: 10px; transform: rotate(45deg); }
+  .swatch.critical { background: none; border: 2px solid var(--critical); border-radius: 50%; width: 9px; height: 9px; }
+  .swatch.circle { background: var(--good); border-radius: 50%; width: 10px; height: 10px; }
+
+  /* card */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .scroll-x { overflow-x: auto; }
+
+  .gantt { min-width: 1000px; position: relative; padding: 10px 20px 14px; }
+
+  .axis {
+    position: relative; height: 24px; margin-left: 258px; border-bottom: 1.5px solid var(--baseline);
+  }
+  .axis .tick {
+    position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid);
+  }
+  .axis .tick span {
+    position: absolute; top: 1px; left: 6px; font-size: 11px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+  }
+
+  .lanes { position: relative; margin-top: 2px; }
+  .lane-group { position: relative; border-top: 1px solid var(--border); padding-left: 68px; }
+  .lane-group:first-child { border-top: none; }
+  .lane-label {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 68px;
+    display: flex; align-items: center;
+    padding: 0 8px 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+    color: var(--ink-2); line-height: 1.25; background: var(--lane-bg); border-right: 1px solid var(--border);
+  }
+  .row { position: relative; display: flex; align-items: center; height: 27px; }
+  .row:nth-child(even) { background: var(--row-alt); }
+  .row:hover { background: var(--accent-soft); }
+  .row-label {
+    width: 190px; flex: none; padding: 0 10px 0 10px; font-size: 12.5px; font-weight: 500; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .row-track { position: relative; flex: 1; height: 100%; }
+  .row-track .gridline {
+    position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid);
+  }
+
+  .bar {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    height: 16px; border-radius: 8px; cursor: pointer;
+    outline-offset: 2px;
+  }
+  .bar.status-done { background: var(--good); }
+  .bar.status-wip { background: var(--warn); }
+  .bar.status-todo { background: var(--todo-fill); border: 1.5px solid var(--todo-border); }
+  .bar:focus-visible { outline: 2px solid var(--accent); }
+
+  .milestone {
+    position: absolute; top: 50%; width: 15px; height: 15px; transform: translate(-50%, -50%) rotate(45deg);
+    cursor: pointer; outline-offset: 3px;
+  }
+  .milestone.status-done { background: var(--good); }
+  .milestone.status-todo { background: var(--surface-1); border: 2px solid var(--todo-border); }
+  .milestone.launch { background: var(--good); border: 2px solid var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+  .milestone.circle { border-radius: 50%; transform: translate(-50%, -50%); background: var(--good); border: none; box-shadow: 0 0 0 3px var(--good-soft); }
+  .milestone:focus-visible { outline: 2px solid var(--accent); }
+
+  .today-line {
+    position: absolute; top: -6px; bottom: 0; width: 2.5px; background: var(--accent); z-index: 3;
+  }
+  .today-line .flag {
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    font-size: 10.5px; font-weight: 700; color: #fff; background: var(--accent);
+    padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  }
+
+  /* tooltip */
+  #tip {
+    position: fixed; z-index: 50; pointer-events: none; max-width: 270px;
+    background: var(--ink); color: var(--page); font-size: 12.5px; line-height: 1.5;
+    padding: 9px 11px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    opacity: 0; transition: opacity 0.1s ease;
+  }
+  #tip.show { opacity: 1; }
+  #tip .t-title { font-weight: 700; margin-bottom: 2px; }
+  #tip .t-range { color: var(--muted); }
+  #tip .t-note { margin-top: 4px; color: #ffd7d2; }
+
+  /* callouts below chart */
+  .risk-panel {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 16px 20px; background: var(--critical-soft); border: 1px solid var(--critical); border-radius: 12px;
+  }
+  .risk-panel .title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--critical); }
+  .risk-panel ul { margin: 0; padding-left: 20px; font-size: 13px; color: var(--ink); line-height: 1.6; }
+  .risk-panel li::marker { color: var(--critical); }
+
+  details.table-toggle {
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; background: #0d0d0d; overflow: hidden;
+  }
+  details.table-toggle summary {
+    cursor: pointer; padding: 12px 18px; font-size: 13px; font-weight: 600; color: #d8d6cc;
+    list-style: none;
+  }
+  details.table-toggle summary::-webkit-details-marker { display: none; }
+  details.table-toggle summary::before { content: "▸ "; color: #8a887f; }
+  details.table-toggle[open] summary::before { content: "▾ "; }
+  .table-scroll { overflow-x: auto; border-top: 1px solid rgba(255,255,255,0.12); }
+  table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  thead th {
+    text-align: left; font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: #9a988f;
+    font-weight: 600; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.12); white-space: nowrap;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.10); font-size: 13px; color: #eceae4; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  footer.note { font-size: 11.5px; color: var(--muted); text-align: right; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <span class="eyebrow">BERRIZ TICKET · PROJECT SOLD-OUT</span>
+    <h1>마일스톤 간트차트 — 전체 일정 타임라인</h1>
+    <div class="meta">
+      <span><strong>기준일</strong> 2026-07-13 (액션플랜 대시보드)</span>
+      <span><strong>비교 기준</strong> 2026-05-13 CEO 전체 보고</span>
+      <span><strong>다음 보고</strong> 2026-07-13</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="legend-item"><span class="swatch good"></span>완료</span>
+    <span class="legend-item"><span class="swatch warn"></span>진행중</span>
+    <span class="legend-item"><span class="swatch todo"></span>예정</span>
+    <span class="legend-item"><span class="swatch launch"></span>🚩 그랜드 오픈</span>
+    <span class="legend-item"><span class="swatch circle"></span>PRD 검증 체크포인트</span>
+  </div>
+
+  <div class="card">
+    <div class="scroll-x">
+      <div class="gantt" id="gantt">
+
+        <div class="axis" id="axis"></div>
+
+        <div class="lanes" id="lanes">
+
+          <div class="lane-group">
+            <div class="lane-label">공통 기반</div>
+            <div class="row">
+              <div class="row-label">킥오프</div>
+              <div class="row-track">
+                <div class="milestone status-done" data-date="2026-06-01" data-label="킥오프" data-range="6/1" data-status="완료" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">선행 3종 (스펙·정책·AIPM)</div>
+              <div class="row-track">
+                <div class="bar status-done" data-start="2026-05-11" data-end="2026-06-21" data-label="선행 3종 완료" data-range="5/11 – 6/21" data-status="완료" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">PRD·정책 최종 확정</div>
+              <div class="row-track">
+                <div class="bar status-wip" data-start="2026-06-22" data-end="2026-07-12" data-label="PRD·정책 최종 확정" data-range="6/22 – 7/12" data-status="진행중" data-note="5/13 당시 '6월 초 확정' 목표 대비 약 1개월 순연 (PRD 6/22–7/5, 정책 6/29–7/12 통합)" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">PRD 검증</div>
+              <div class="row-track">
+                <div class="milestone circle" data-date="2026-08-18" data-label="PRD 검증 (1차)" data-range="8월 3주(8/18)" data-status="예정" tabindex="0"></div>
+                <div class="milestone circle" data-date="2026-09-30" data-label="PRD 검증 (2차)" data-range="9/30" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">기획 SB</div>
+            <div class="row">
+              <div class="row-label">SB 1차 확정</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-07-06" data-end="2026-07-26" data-label="SB 1차 확정" data-range="7/6 – 7/26" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">SB 2차 확정</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-07-27" data-end="2026-08-09" data-label="SB 2차 확정" data-range="7/27 – 8/9" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">어드민·파트너센터 SB</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-08-10" data-end="2026-08-23" data-label="어드민·파트너센터 SB" data-range="8/10 – 8/23" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">디자인</div>
+            <div class="row">
+              <div class="row-label">선행 리서치</div>
+              <div class="row-track">
+                <div class="bar status-wip" data-start="2026-06-22" data-end="2026-07-05" data-label="디자인 선행 리서치" data-range="6/22 – 7/5" data-status="진행중" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">1·2차 확정</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-07-06" data-end="2026-09-20" data-label="디자인 1·2차 확정" data-range="7/6 – 9/20" data-status="예정" data-note="1차 확정(~8/23) 직후 FE 1차 개발이 바로 착수 — 버퍼 0일" data-risk="true" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">BE 개발</div>
+            <div class="row">
+              <div class="row-label">구조·DB 정리</div>
+              <div class="row-track">
+                <div class="bar status-wip" data-start="2026-06-22" data-end="2026-08-16" data-label="BE 구조·DB 정리" data-range="6/22 – 8/16" data-status="진행중" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">1차 개발완료</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-07-27" data-end="2026-08-23" data-label="BE 1차 개발완료" data-range="7/27 – 8/23" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">2차 개발완료</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-08-24" data-end="2026-09-20" data-label="BE 2차 개발완료" data-range="8/24 – 9/20" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">FE / APP</div>
+            <div class="row">
+              <div class="row-label">FE 선행 리서치</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-07-27" data-end="2026-08-23" data-label="FE 선행 리서치" data-range="7/27 – 8/23" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">FE 1·2차 개발완료</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-08-03" data-end="2026-12-05" data-label="FE 1·2차 개발완료" data-range="8/3 – 12/5" data-status="예정" data-note="PRD 확정 직후 조기 착수 — 디자인·화면 확정(~9/20)과 병행 진행" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">APP 개발</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-09-21" data-end="2026-12-05" data-label="APP 개발" data-range="9/21 – 12/5" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">QA / 런칭</div>
+            <div class="row">
+              <div class="row-label">백엔드 정책 검증</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-10-05" data-end="2026-10-25" data-label="백엔드 정책 위주 검증" data-range="10/5 – 10/25" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">정식 QA</div>
+              <div class="row-track">
+                <div class="bar status-todo" data-start="2026-12-05" data-end="2027-01-08" data-label="정식 QA" data-range="12/5 – 1/8" data-status="예정" tabindex="0"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-label">🚩 그랜드 오픈</div>
+              <div class="row-track">
+                <div class="milestone launch" data-date="2027-01-31" data-label="그랜드 오픈" data-range="1월 말" data-status="목표 런칭일" data-note="원본 액션플랜 간트차트(구글시트)엔 1월 초로 표기 — 실제 목표(1월 말)와 불일치, 정정 필요" data-risk="true" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-group">
+            <div class="lane-label">참고</div>
+            <div class="row">
+              <div class="row-label">아레나 베타 티켓팅</div>
+              <div class="row-track">
+                <div class="bar status-todo" style="opacity:0.6; border-style:dashed;" data-start="2027-02-01" data-end="2027-02-15" data-label="서울아레나 개관작 베타 티켓팅" data-range="2월" data-status="검토 (North Star Metric)" tabindex="0"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="table-toggle">
+    <summary>표로 보기 (전체 마일스톤 데이터)</summary>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>구분</th><th>마일스톤</th><th>기간</th><th>상태</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>공통기반</td><td>킥오프</td><td class="mono">6/1</td><td>완료</td></tr>
+          <tr><td>공통기반</td><td>선행 3종(스펙·정책·AIPM)</td><td class="mono">5/11–6/21</td><td>완료</td></tr>
+          <tr><td>공통기반</td><td>PRD·정책 최종 확정</td><td class="mono">6/22–7/12</td><td>진행중</td></tr>
+          <tr><td>공통기반</td><td>PRD 검증 (1·2차)</td><td class="mono">8/18, 9/30</td><td>예정</td></tr>
+          <tr><td>기획SB</td><td>SB 1차 확정</td><td class="mono">7/6–7/26</td><td>예정</td></tr>
+          <tr><td>기획SB</td><td>SB 2차 확정</td><td class="mono">7/27–8/9</td><td>예정</td></tr>
+          <tr><td>기획SB</td><td>어드민·파트너센터 SB</td><td class="mono">8/10–8/23</td><td>예정</td></tr>
+          <tr><td>디자인</td><td>선행 리서치</td><td class="mono">6/22–7/5</td><td>진행중</td></tr>
+          <tr><td>디자인</td><td>1·2차 확정</td><td class="mono">7/6–9/20</td><td>예정 (버퍼 리스크)</td></tr>
+          <tr><td>BE</td><td>구조·DB 정리</td><td class="mono">6/22–8/16</td><td>진행중</td></tr>
+          <tr><td>BE</td><td>1차 개발완료</td><td class="mono">7/27–8/23</td><td>예정</td></tr>
+          <tr><td>BE</td><td>2차 개발완료</td><td class="mono">8/24–9/20</td><td>예정</td></tr>
+          <tr><td>FE&amp;APP</td><td>FE 선행 리서치</td><td class="mono">7/27–8/23</td><td>예정</td></tr>
+          <tr><td>FE&amp;APP</td><td>FE 1·2차 개발완료</td><td class="mono">8/3–12/5</td><td>예정</td></tr>
+          <tr><td>FE&amp;APP</td><td>APP 개발</td><td class="mono">9/21–12/5</td><td>예정</td></tr>
+          <tr><td>QA&amp;런칭</td><td>백엔드 정책 검증</td><td class="mono">10/5–10/25</td><td>예정</td></tr>
+          <tr><td>QA&amp;런칭</td><td>정식 QA</td><td class="mono">12/5–1/8</td><td>예정</td></tr>
+          <tr><td>QA&amp;런칭</td><td>그랜드 오픈</td><td class="mono">1월 말</td><td>목표 런칭일 (표기 정정 필요)</td></tr>
+          <tr><td>참고</td><td>아레나 베타 티켓팅</td><td class="mono">2월</td><td>검토</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <footer class="note">베리즈 티켓 프로젝트 CEO 보고 — 2026.07.13 · 진행 현황 요약 첨부용</footer>
+
+</div>
+
+<div id="tip"></div>
+
+<script>
+(function () {
+  var TIMELINE_START = new Date("2026-06-01T00:00:00");
+  var TIMELINE_END = new Date("2027-02-20T00:00:00");
+  var TOTAL_MS = TIMELINE_END - TIMELINE_START;
+
+  function pct(dateStr) {
+    var d = new Date(dateStr + "T00:00:00");
+    return Math.max(0, Math.min(100, ((d - TIMELINE_START) / TOTAL_MS) * 100));
+  }
+
+  // axis month ticks
+  var axis = document.getElementById("axis");
+  var months = [
+    ["2026-06-01","6월"], ["2026-07-01","7월"], ["2026-08-01","8월"],
+    ["2026-09-01","9월"], ["2026-10-01","10월"], ["2026-11-01","11월"], ["2026-12-01","12월"],
+    ["2027-01-01","27년 1월"], ["2027-02-01","2월"]
+  ];
+  months.forEach(function (m) {
+    var tick = document.createElement("div");
+    tick.className = "tick";
+    tick.style.left = pct(m[0]) + "%";
+    var label = document.createElement("span");
+    label.textContent = m[1];
+    tick.appendChild(label);
+    axis.appendChild(tick);
+  });
+
+  // gridlines + bars + milestones
+  document.querySelectorAll(".row-track").forEach(function (track) {
+    months.forEach(function (m) {
+      var gl = document.createElement("div");
+      gl.className = "gridline";
+      gl.style.left = pct(m[0]) + "%";
+      track.appendChild(gl);
+    });
+  });
+
+  document.querySelectorAll(".bar[data-start]").forEach(function (bar) {
+    var left = pct(bar.dataset.start);
+    var right = pct(bar.dataset.end);
+    bar.style.left = left + "%";
+    bar.style.width = Math.max(right - left, 0.6) + "%";
+  });
+
+  document.querySelectorAll(".milestone[data-date]").forEach(function (ms) {
+    ms.style.left = pct(ms.dataset.date) + "%";
+  });
+
+  // today line — inject spanning the lanes area
+  var todayPct = pct("2026-07-11");
+  var todayLine = document.createElement("div");
+  todayLine.className = "today-line";
+  todayLine.style.left = todayPct + "%";
+  var flag = document.createElement("span");
+  flag.className = "flag";
+  flag.textContent = "오늘 7/11";
+  todayLine.appendChild(flag);
+
+  var laneWrap = document.createElement("div");
+  laneWrap.style.position = "absolute";
+  laneWrap.style.left = "258px";
+  laneWrap.style.right = "0";
+  laneWrap.style.top = "0";
+  laneWrap.style.bottom = "0";
+  laneWrap.style.pointerEvents = "none";
+  laneWrap.appendChild(todayLine);
+  document.getElementById("gantt").appendChild(laneWrap);
+
+  function positionTodayLine() {
+    var lanesEl = document.getElementById("lanes");
+    var ganttEl = document.getElementById("gantt");
+    var lanesRect = lanesEl.getBoundingClientRect();
+    var ganttRect = ganttEl.getBoundingClientRect();
+    laneWrap.style.top = (lanesRect.top - ganttRect.top) + "px";
+    laneWrap.style.height = lanesRect.height + "px";
+  }
+  positionTodayLine();
+  window.addEventListener("resize", positionTodayLine);
+
+  // tooltip
+  var tip = document.getElementById("tip");
+  function showTip(el, evt) {
+    var label = el.dataset.label || "";
+    var range = el.dataset.range || "";
+    var status = el.dataset.status || "";
+    var note = el.dataset.note || "";
+    tip.innerHTML =
+      '<div class="t-title">' + label + '</div>' +
+      '<div class="t-range">' + range + (status ? " · " + status : "") + '</div>' +
+      (note ? '<div class="t-note">' + note + '</div>' : "");
+    tip.classList.add("show");
+    moveTip(evt);
+  }
+  function moveTip(evt) {
+    var x = evt.clientX, y = evt.clientY;
+    var tw = tip.offsetWidth || 220, th = tip.offsetHeight || 40;
+    var px = Math.min(x + 14, window.innerWidth - tw - 12);
+    var py = Math.max(y - th - 14, 8);
+    tip.style.left = px + "px";
+    tip.style.top = py + "px";
+  }
+  function hideTip() { tip.classList.remove("show"); }
+
+  document.querySelectorAll(".bar[data-label], .milestone[data-label]").forEach(function (el) {
+    el.addEventListener("mouseenter", function (e) { showTip(el, e); });
+    el.addEventListener("mousemove", moveTip);
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("focus", function (e) {
+      var r = el.getBoundingClientRect();
+      showTip(el, { clientX: r.left, clientY: r.top });
+    });
+    el.addEventListener("blur", hideTip);
+  });
+})();
+</script>
+
+</body>
+</html>
