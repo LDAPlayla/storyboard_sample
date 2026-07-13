@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>베리즈 티켓 · 예매 플로우 목업 (v2)</title>
+<style>
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+  :root{
+    /* ---- outer shell (grey / white house style) ---- */
+    --canvas:#EDEFF2; --card:#FFFFFF; --card-bd:#E6E8EC;
+    --card-sh:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+    --ink:#1A1D22; --ink2:#4A5058; --ink3:#7A828C; --muted:#9AA1AB; --chip:#F3F4F6;
+    /* ---- brand ---- */
+    --brand:#E60578; --brand-bright:#FF1991;
+    --brand-tint:rgba(230,5,120,.07); --brand-bd:rgba(230,5,120,.2);
+    --badge-new:#6870FF; --badge-excl:#FA5096;
+    /* ---- phone app tokens (product UI, kept as-is) ---- */
+    --app-bg:#F6F6F6; --divider:#E5E5E5; --card-border:#ECECEC;
+    --t1:#121212; --t2:#414141; --t3:#717171; --t-muted:#888888;
+    --ok:#1F9D57; --warn:#E8791B;
+    --brand-tint-bg:rgba(255,25,145,.045); --brand-tint-border:rgba(255,25,145,.14);
+    --radius:12px; --shadow-card:0 1px 2px rgba(0,0,0,.05); --shadow-bar:0 -4px 10px rgba(0,0,0,.06);
+    --app-font:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --canvas:#15171C; --card:#1E2127; --card-bd:#2A2E36; --card-sh:0 1px 3px rgba(0,0,0,.4);
+    --ink:#F1F3F5; --ink2:#B8BEC7; --ink3:#8A929C; --muted:#6D747E; --chip:#262A31;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:var(--app-font);
+    background:radial-gradient(1000px 480px at 88% -12%, rgba(230,5,120,.05), transparent 60%),var(--canvas);
+    color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh}
+  button{font-family:inherit;cursor:pointer}
+  ::selection{background:rgba(230,5,120,.2)}
+
+  .wrap{max-width:1340px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+
+  /* ---- generic card ---- */
+  .card{background:var(--card);border:1px solid var(--card-bd);border-radius:16px;padding:18px;box-shadow:var(--card-sh)}
+  .cardhd{margin-bottom:14px}
+  .cardhd h2{margin:0;font-size:13px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+  .cardhd p{margin:3px 0 0;font-size:11px;color:var(--ink3);line-height:1.5}
+
+  /* ---- header ---- */
+  .apphead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .hl{display:flex;align-items:center;gap:12px}
+  .logodot{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-bright));
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 16px rgba(230,5,120,.35)}
+  .apphead h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .apphead .sub{margin:3px 0 0;font-size:12px;color:var(--ink3)}
+  .headmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .metachip{font-size:11.5px;color:var(--ink3);background:var(--chip);border:1px solid var(--card-bd);padding:6px 11px;border-radius:20px}
+  .metachip b{color:var(--ink);font-weight:700}
+  .ghost-btn{background:var(--card);border:1px solid var(--card-bd);color:var(--ink2);padding:7px 12px;border-radius:9px;font-size:12px;font-weight:600;transition:.15s}
+  .ghost-btn:hover{border-color:var(--brand);color:var(--ink)}
+
+  /* ---- flow overview (horizontal) ---- */
+  .flow{display:flex;align-items:stretch;gap:4px;overflow-x:auto;padding-bottom:4px}
+  .flow::-webkit-scrollbar{height:6px}.flow::-webkit-scrollbar-thumb{background:var(--card-bd);border-radius:6px}
+  .fstep{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+  .fbtn{display:flex;flex-direction:column;gap:2px;min-width:118px;text-align:left;background:var(--chip);
+    border:1px solid var(--card-bd);border-radius:12px;padding:10px 12px;transition:.15s}
+  .fbtn:not([disabled]):hover{border-color:var(--brand-bd)}
+  .fbtn .fn{font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--muted)}
+  .fbtn .ftitle{font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .fbtn .fmeta{font-size:10px;color:var(--ink3)}
+  .fconn{width:16px;height:2px;background:var(--card-bd);flex:0 0 auto;align-self:center}
+  .fstep.done .fbtn{border-color:var(--brand-bd);background:var(--brand-tint)}
+  .fstep.done .fn,.fstep.done .ftitle{color:var(--brand)}
+  .fstep.active .fbtn{border-color:var(--brand);background:var(--card);box-shadow:0 0 0 2px var(--brand-tint)}
+  .fstep.active .fn{color:var(--brand)}.fstep.active .ftitle{color:var(--ink)}
+  .fstep.skip .fbtn{opacity:.42;border-style:dashed;cursor:not-allowed}
+  .fstep.skip .ftitle{text-decoration:line-through}
+  .flagline{margin-top:12px;padding:10px 12px;border:1px dashed var(--badge-new);border-radius:10px;
+    background:rgba(104,112,255,.07);font-size:11.5px;color:var(--ink2);line-height:1.5}
+  .flagline b{color:var(--ink)}
+
+  /* ---- experience grid ---- */
+  .exp-grid{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr) minmax(300px,360px);gap:20px;align-items:start}
+  @media (max-width:1080px){.exp-grid{grid-template-columns:1fr;max-width:430px;margin:0 auto}.rightcol{order:3}}
+  .leftcol,.rightcol{display:flex;flex-direction:column;gap:16px}
+  .stagecol{display:flex;flex-direction:column;align-items:center;gap:14px}
+  /* 권종 quantity stepper (Berriz +/- style) */
+  .ptype-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--card-border);border-radius:12px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow-card)}
+  .ptype-row .pt-n{font-size:14px;font-weight:700;color:var(--t1)}
+  .ptype-row .pt-s{font-size:11.5px;color:var(--t-muted);margin-top:2px}
+  .qty{display:inline-flex;align-items:center;border:1px solid var(--card-border);border-radius:8px;overflow:hidden;background:#fff;flex:0 0 auto}
+  .qty button{width:34px;height:34px;border:0;background:#fff;font-size:18px;line-height:1;color:var(--t1);display:grid;place-items:center;transition:.12s}
+  .qty button:active{background:#FAFAFA}
+  .qty button:disabled{color:#D5D5D5;cursor:not-allowed}
+  .qty .qn{min-width:42px;height:34px;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--t1);border-left:1px solid var(--card-border);border-right:1px solid var(--card-border);font-variant-numeric:tabular-nums}
+
+  /* ---- 유형 / 옵션 controls ---- */
+  .subttl{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--ink3);text-transform:uppercase;margin:0 0 8px}
+  .subttl.mt{margin-top:16px}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;padding:4px;background:var(--chip);border:1px solid var(--card-bd);border-radius:11px}
+  .seg button{border:0;background:transparent;color:var(--ink2);padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;transition:.15s;display:flex;align-items:center;gap:6px}
+  .seg button .dt{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.45}
+  .seg button[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(230,5,120,.3)}
+  .seg button[aria-pressed="true"] .dt{opacity:1;background:#fff}
+  .seg.blue button[aria-pressed="true"]{background:var(--badge-new);box-shadow:0 2px 8px rgba(104,112,255,.3)}
+  .seg button[disabled]{opacity:.35;cursor:not-allowed}
+  .segnote{font-size:11px;color:var(--ink3);margin:8px 0 0;line-height:1.5}
+  .segnote b{color:var(--ink2)}
+  .toggles{display:flex;flex-direction:column;gap:14px}
+  .opt-group{display:flex;flex-direction:column;gap:7px}
+  .opt-gh{font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--brand);text-transform:uppercase}
+  .opt-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media (max-width:520px){.opt-list{grid-template-columns:1fr}}
+  .opt{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border:1px solid var(--card-bd);border-radius:10px;background:var(--card)}
+  .opt.dis{opacity:.45}
+  .opt .ol{font-size:11.5px;font-weight:600;color:var(--ink2)}
+  .switch{width:38px;height:22px;border-radius:20px;background:#D5D9DE;position:relative;transition:.16s;border:0;flex:0 0 auto}
+  :root[data-theme="dark"] .switch{background:#3A3F48}
+  .switch:before{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch[aria-checked="true"]{background:var(--brand)}
+  .switch[aria-checked="true"]:before{transform:translateX(16px)}
+
+  /* ---- user stories ---- */
+  #storyStep{font-weight:700;color:var(--brand)}
+  .stories{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .stories li{position:relative;padding:10px 12px 10px 26px;background:var(--chip);border:1px solid var(--card-bd);
+    border-radius:10px;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+  .stories li:before{content:"";position:absolute;left:12px;top:16px;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+  .relcap{font-size:10px;font-weight:800;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+  .relrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--card-bd)}
+  .tag{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px;border:1px solid var(--card-bd)}
+  .tag.ty{background:var(--brand-tint);color:var(--brand);border-color:var(--brand-bd)}
+  .tag.op{background:var(--chip);color:var(--ink3)}
+  /* product detail images */
+  .detailimgs{display:flex;flex-direction:column;gap:10px}
+  .dimg{height:230px;border-radius:12px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;letter-spacing:.02em;text-shadow:0 1px 6px rgba(0,0,0,.25);position:relative;overflow:hidden}
+  .dimg:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(125deg,transparent 0 30px,rgba(255,255,255,.06) 30px 31px)}
+  /* reservation time sub + consent all + fee table (phone) */
+  .tsub{font-size:11px;color:var(--t-muted);margin-top:3px}
+  .cal-day.soldc{color:#CFCFCF;text-decoration:line-through}
+  .timecard[disabled]{opacity:.55;cursor:not-allowed}
+  /* 예매 준비 상태 */
+  .prep-row{display:flex;align-items:center;gap:12px;border:1px solid var(--card-border);border-radius:12px;padding:14px;background:#fff;box-shadow:var(--shadow-card)}
+  .prep-row.done{background:var(--brand-tint-bg);border-color:var(--brand-tint-border)}
+  .prep-row .pr-ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:#F3F4F6;flex:0 0 auto}
+  .prep-row.done .pr-ic{background:var(--brand);color:#fff;font-weight:800}
+  .prep-row .pr-tx{flex:1}
+  .prep-row .pr-t{font-size:14px;font-weight:700;color:var(--t1)}
+  .prep-row .pr-s{font-size:11.5px;color:var(--t-muted);margin-top:2px}
+  .pr-btn{border:1px solid var(--brand);background:#fff;color:var(--brand);font-weight:700;font-size:12.5px;padding:8px 12px;border-radius:8px;flex:0 0 auto}
+  .pr-badge{font-size:11px;font-weight:700;color:var(--brand);flex:0 0 auto}
+  /* 예매 준비 상태 라인 (날짜/입장 화면 상단) */
+  .prepline{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid var(--card-border);border-radius:10px;padding:11px 13px;background:#fff;margin-bottom:14px;box-shadow:var(--shadow-card)}
+  .prepline.done{background:var(--brand-tint-bg);border-color:var(--brand-tint-border)}
+  .prepline .pl-ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:var(--warn);flex:0 0 auto}
+  .prepline.done .pl-ic{background:var(--brand)}
+  .prepline .pl-tx{flex:1;font-size:12.5px;font-weight:600;color:var(--t1)}
+  .prepline .pl-go{font-size:11.5px;font-weight:700;color:var(--brand);flex:0 0 auto}
+  /* 시간 선택 칩 그리드 (예약하기 스타일) */
+  .timechips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tchip{border:1px solid var(--card-border);background:#fff;border-radius:10px;padding:10px 6px;text-align:center;transition:.12s}
+  .tchip .tct{font-size:14px;font-weight:700;color:var(--t1)}
+  .tchip .tcr{font-size:10.5px;color:var(--t-muted);margin-top:3px}
+  .tchip[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-tint-bg);box-shadow:0 0 0 1px var(--brand) inset}
+  .tchip[aria-pressed="true"] .tct{color:var(--brand)}
+  .tchip[disabled]{opacity:.5;cursor:not-allowed}
+  .tchip.soldc .tct{text-decoration:line-through;color:#B0B0B0}
+  /* 전체 화면 오버뷰 (클릭 없이 모든 화면 한눈에) */
+  .ovgrid{display:flex;gap:22px;overflow-x:auto;padding:4px 2px 16px}
+  .ovcard{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:9px}
+  .ovcap{font-size:12px;font-weight:700;color:var(--ink2);display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .ovcap .ovn{width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;font-size:10px;display:grid;place-items:center;font-weight:800}
+  .ovframe{width:360px;height:750px;flex:0 0 auto;overflow:hidden;border-radius:34px;border:1px solid var(--card-bd);box-shadow:0 14px 34px -14px rgba(0,0,0,.45)}
+  .phone.mini{width:390px;max-width:none;transform:scale(.923);transform-origin:top left;pointer-events:none;box-shadow:none;border:0;border-radius:44px}
+  .agree-all{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #F1F1F1;cursor:pointer}
+  .agree-all .box{width:22px;height:22px;border-radius:6px;border:1.5px solid #CFCFCF;display:grid;place-items:center;color:#fff;font-size:13px;transition:.12s}
+  .agree-all[data-on="1"] .box{background:var(--brand);border-color:var(--brand)}
+  .agree-all .at{font-size:14px;font-weight:700;color:var(--t1)}
+  .feekv{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed #EFEFEF}
+  .feekv:last-child{border-bottom:0}
+  .feekv .fl{color:var(--t2)} .feekv .fr{color:var(--t1);font-weight:700;white-space:nowrap}
+
+  /* =================== PHONE (product UI, unchanged) =================== */
+  .phone{width:390px;max-width:100%;height:812px;background:var(--app-bg);border-radius:44px;border:1px solid rgba(0,0,0,.25);
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.45),0 0 0 11px #0b0910,0 0 0 12px rgba(255,255,255,.06);
+    overflow:hidden;position:relative;display:flex;flex-direction:column}
+  @media (max-width:430px){.phone{width:100%;border-radius:34px}}
+  .statusbar{height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 32px;font-size:14px;font-weight:600;color:var(--t1);background:var(--app-bg)}
+  .statusbar .dots{font-size:12px}
+  .gnb{height:50px;flex:0 0 50px;display:flex;align-items:center;justify-content:center;position:relative;background:var(--card);border-bottom:1px solid #F1F1F1;z-index:6}
+  .gnb .title{font-size:16px;font-weight:600;color:var(--t1)}
+  .gnb .back{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--t1);background:none;border:0;padding:6px}
+  .gnb .steptag{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--t-muted);font-weight:600}
+  .screen{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;position:relative}
+  .screen::-webkit-scrollbar{width:0}
+  .pad{padding:20px}
+  .btmbar{position:absolute;left:0;right:0;bottom:0;background:var(--card);box-shadow:var(--shadow-bar);padding:10px 20px 28px;z-index:5}
+  .homeind{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:134px;height:5px;border-radius:3px;background:#111}
+  .screen.has-bar{padding-bottom:120px}
+  .btn{display:flex;width:100%;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:15px 20px;font-size:16px;font-weight:600;background:var(--brand);color:#fff;transition:.14s}
+  .btn:hover{filter:brightness(1.04)} .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#D9D9D9;color:#fff;cursor:not-allowed}
+  .btn.sec{background:#fff;color:var(--brand);border:1px solid #D0D0D0}
+  .btn.ghost{background:#fff;color:var(--t2);border:1px solid #D0D0D0}
+  .btn.sm{padding:11px 16px;font-size:14px}
+  .btn-row{display:flex;gap:8px}
+  .acard{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow-card)}
+  .acard.p{padding:16px}
+  .sect-t{font-size:17px;font-weight:600;color:var(--t1);margin:0}
+  .badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#fff;padding:3px 7px;border-radius:3px}
+  .badge.new{background:var(--badge-new)} .badge.excl{background:var(--badge-excl)}
+  .badge.pre{background:#6870FF}
+  .badge.line{background:#fff;color:var(--brand);border:1px solid var(--brand);border-radius:6px;padding:3px 8px;font-size:12px}
+  .badge.soft{background:var(--brand-tint-bg);color:var(--brand);border-radius:6px;padding:3px 8px;font-size:11px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .kv{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:7px 0}
+  .kv .k{color:var(--t-muted)} .kv .v{color:var(--t1);font-weight:500;text-align:right}
+  .muted{color:var(--t-muted)} .pink{color:var(--brand)}
+  .price{font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
+  .strike{color:#A0A0A0;text-decoration:line-through;font-size:13px}
+  .amt{font-variant-numeric:tabular-nums}
+  .divider{height:1px;background:#F1F1F1;margin:16px 0}
+  .tinylabel{font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--t-muted)}
+  .notice{background:var(--brand-tint-bg);border:1px solid var(--brand-tint-border);border-radius:var(--radius);padding:13px 15px}
+  .notice li{font-size:12.5px;color:var(--brand);line-height:1.6;list-style:none;position:relative;padding-left:13px;margin-bottom:3px}
+  .notice li:before{content:"";position:absolute;left:2px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--brand)}
+  .notice li:last-child{margin-bottom:0}
+  .notice.gray{background:#FAFAFA;border-color:var(--divider)}
+  .notice.gray li{color:var(--t2)} .notice.gray li:before{background:#B9B9B9}
+  .poster{height:196px;border-radius:14px;background:radial-gradient(120% 90% at 20% 10%, rgba(255,255,255,.28), transparent 45%),linear-gradient(150deg,#7d2ff0,#e60578 55%,#ff6a3d);position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:16px;color:#fff}
+  .poster .pttl{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2;text-shadow:0 2px 12px rgba(0,0,0,.3)}
+  .poster .ptag{position:absolute;top:14px;left:14px;font-size:11px;font-weight:800;background:rgba(0,0,0,.35);padding:5px 10px;border-radius:20px}
+  .poster:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 26px,rgba(255,255,255,.05) 26px 27px)}
+  .keyinfo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .ki{background:#FAFAFA;border:1px solid var(--card-border);border-radius:10px;padding:11px 10px;text-align:center}
+  .ki .ki-ic{font-size:16px}
+  .ki .ki-l{font-size:10.5px;color:var(--t-muted);margin-top:3px;font-weight:600}
+  .ki .ki-v{font-size:12.5px;color:var(--t1);font-weight:700;margin-top:2px;letter-spacing:-.01em}
+  .badge.glob{background:#1E2A4A;color:#fff}
+  .infochips{display:flex;flex-wrap:wrap;gap:8px}
+  .ic{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--t2);background:#FAFAFA;border:1px solid var(--card-border);border-radius:20px;padding:7px 12px}
+  .ic-i{font-size:14px}
+  .schedlist{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+  .schedrow{display:flex;align-items:center;gap:10px;padding:9px 2px}
+  .schedrow .sr-dot{width:9px;height:9px;border-radius:50%;background:#D5D9DE;flex:0 0 auto}
+  .schedrow.done .sr-dot{background:var(--brand)} .schedrow.active .sr-dot{background:var(--brand);box-shadow:0 0 0 4px rgba(230,5,120,.18)}
+  .schedrow.show .sr-dot{background:#1E2A4A}
+  .schedrow .sr-lb{font-size:13px;font-weight:700;color:var(--t1)}
+  .schedrow .sr-dt{font-size:11.5px;color:var(--t-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+  .schedrow .sr-st{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;flex:0 0 auto}
+  .st-done{background:#F1F1F1;color:#9AA0A6} .st-active{background:var(--brand);color:#fff} .st-soon{background:#EAF0FB;color:#4E71C8} .st-tba{background:#FFF3E6;color:var(--warn)} .st-show{background:#1E2A4A;color:#fff}
+  .schednote{margin-top:10px;padding:9px 11px;border:1px dashed var(--brand-bd);border-radius:9px;background:var(--brand-tint);font-size:11px;color:var(--ink2);line-height:1.5}
+  .schednote b{color:var(--brand)}
+  .schedchips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .schedchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;background:#F7F8FA;border:1px solid var(--card-border);border-radius:9px;padding:8px 11px;min-width:92px}
+  .schedchip .sc-lb{font-size:10.5px;font-weight:700;color:var(--t-muted)}
+  .schedchip .sc-dt{font-size:12.5px;font-weight:800;color:var(--t1);font-variant-numeric:tabular-nums}
+  .schedchip b{font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px;margin-top:1px}
+  .schedchip.active{border-color:var(--brand)}
+  .schedchip.done b{background:#F1F1F1;color:#9AA0A6}
+  .schedchip.active b{background:var(--brand);color:#fff}
+  .schedchip.soon b{background:#EAF0FB;color:#4E71C8}
+  .schedchip.tba{border-style:dashed} .schedchip.tba b{background:#FFF3E6;color:var(--warn)}
+  .schednote-sm{margin-top:9px;font-size:10.5px;color:var(--t-muted)}
+  .schednote-sm b{color:var(--brand)}
+  .cd-mini{display:flex;gap:6px;justify-content:center;margin-bottom:8px}
+  .cd-mini button{font-size:10px;font-weight:700;color:var(--t2);background:#F1F1F1;border:1px solid var(--card-border);border-radius:14px;padding:5px 10px}
+  .cd-mini button:active{background:#E8E8E8}
+  .saletl{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px 16px 14px;box-shadow:var(--shadow-card)}
+  .stl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .stl-cd{display:flex;align-items:center;gap:8px}
+  .stl-dday{font-size:12px;font-weight:800;color:#fff;background:var(--brand);padding:4px 10px;border-radius:20px}
+  .stl-dday.blue{background:var(--badge-new)}
+  .stl-timer{font-size:13px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .stl-track{display:flex;align-items:flex-start;position:relative;padding:0 4px}
+  .stl-track:before{content:"";position:absolute;top:6px;left:20px;right:20px;height:2px;background:var(--divider)}
+  .stl-track:after{content:"";position:absolute;top:6px;left:20px;height:2px;background:var(--brand);width:var(--prog,0%);transition:width .4s;max-width:calc(100% - 40px)}
+  .stl-n{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:1}
+  .stl-dot{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--divider);margin-bottom:8px}
+  .stl-n.done .stl-dot{background:var(--brand);border-color:var(--brand)}
+  .stl-n.active .stl-dot{background:#fff;border-color:var(--brand);box-shadow:0 0 0 4px rgba(230,5,120,.18)}
+  .stl-n.active.blue .stl-dot{border-color:var(--badge-new);box-shadow:0 0 0 4px rgba(104,112,255,.2)}
+  .stl-lb{font-size:11px;font-weight:700;color:var(--t2)}
+  .stl-n.active .stl-lb{color:var(--brand)}
+  .stl-n.active.blue .stl-lb{color:var(--badge-new)}
+  .stl-dt{font-size:10.5px;color:var(--t-muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  .alwayspill{display:inline-flex;align-items:center;gap:7px;background:var(--brand-tint-bg);border:1px solid var(--brand-tint-border);color:var(--brand);font-weight:700;font-size:13px;padding:10px 14px;border-radius:12px}
+  .noti-row{display:flex;align-items:center;gap:10px;padding:13px 2px;border-bottom:1px solid #F1F1F1}
+  .noti-row:last-child{border-bottom:0}
+  .noti-row .nb{font-size:10px;font-weight:800;color:var(--brand);background:var(--brand-tint-bg);padding:3px 6px;border-radius:5px;flex:0 0 auto}
+  .noti-row .nt{font-size:13px;color:var(--t1);font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .noti-row .nc{color:#C4C4C4;font-size:16px}
+  .datecard{border:1px solid var(--card-border);background:#fff;border-radius:12px;padding:15px;transition:.15s;text-align:left;width:100%;box-shadow:var(--shadow-card)}
+  .datecard[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .datecard .dc-top{display:flex;align-items:center;justify-content:space-between}
+  .datecard .dc-day{font-size:16px;font-weight:700;color:var(--t1)}
+  .datecard .dc-time{font-size:13px;color:var(--t2);margin-top:3px}
+  .rem{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px}
+  .rem.hi{background:#EAF7EF;color:var(--ok)} .rem.mid{background:#FFF3E6;color:var(--warn)}
+  .rem.low{background:#FEEDED;color:#D8453F} .rem.soldout{background:#F1F1F1;color:#A0A0A0}
+  .remgrades{display:flex;gap:5px;margin-top:11px;flex-wrap:wrap}
+  .rg{font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px}
+  .rg.vip{background:#FBEAF3;color:#C6398C} .rg.r{background:#EAF3EC;color:#3E8E5A} .rg.s{background:#EAF0FB;color:#4E71C8}
+  .rg.zero{background:#F1F1F1;color:#A0A0A0}
+  .pr-btn:disabled{opacity:.4;border-color:#D5D5D5;color:#B0B0B0;cursor:not-allowed}
+  .cal{background:#fff;border:1px solid var(--card-border);border-radius:14px;padding:14px 14px 8px;box-shadow:var(--shadow-card)}
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .cal-head .cm{font-size:15px;font-weight:700;color:var(--t1)}
+  .cal-head button{background:#F4F4F4;border:0;border-radius:8px;width:30px;height:30px;font-size:15px;color:var(--t2)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-dow{font-size:11px;color:var(--t-muted);text-align:center;padding:2px 0 6px;font-weight:600}
+  .cal-dow.sun{color:#E4756F} .cal-dow.sat{color:#6E8FE4}
+  .cal-day{aspect-ratio:1;border:0;background:transparent;border-radius:9px;font-size:13px;position:relative;color:var(--t1);font-weight:600}
+  .cal-day.empty{visibility:hidden}
+  .cal-day.no{color:#D2D2D2;font-weight:400}
+  .cal-day.has:after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--brand)}
+  .cal-day.sun{color:#E4756F} .cal-day.sat{color:#6E8FE4}
+  .cal-day.sel{background:var(--brand)!important;color:#fff!important}
+  .cal-day.sel:after{background:#fff}
+  .cal-times{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .timecard{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--card-border);border-radius:10px;padding:12px 14px;background:#fff;width:100%}
+  .timecard[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .timecard .tt{font-size:14px;font-weight:700;color:var(--t1)}
+  .q-hero{text-align:center;padding:22px 0 6px}
+  .q-spin{width:92px;height:92px;margin:0 auto 16px;position:relative}
+  .q-spin svg{transform:rotate(-90deg)}
+  .q-num{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .q-num .n{font-size:24px;font-weight:800;color:var(--brand);line-height:1;font-variant-numeric:tabular-nums}
+  .q-num .l{font-size:10px;color:var(--t-muted);margin-top:3px}
+  .q-title{font-size:18px;font-weight:700;color:var(--t1)}
+  .q-sub{font-size:13px;color:var(--t2);margin-top:6px;line-height:1.5}
+  .q-bar{height:8px;border-radius:20px;background:#EFEFEF;overflow:hidden;margin:18px 0 8px}
+  .q-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-bright));width:0;transition:width .4s}
+  .q-stat{display:flex;justify-content:space-between;font-size:12px;color:var(--t-muted);font-variant-numeric:tabular-nums}
+  .ratebox{margin-top:16px;background:#FAFAFA;border:1px solid var(--card-border);border-radius:12px;padding:14px}
+  .rate-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .rate-top .rl{font-size:12px;color:var(--t2);font-weight:600}
+  .rate-top .rv{font-size:16px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums}
+  .rate-bar{height:9px;border-radius:20px;background:#EAEAEA;overflow:hidden;display:flex}
+  .rate-sold{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-bright))}
+  .rate-legend{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t-muted);margin-top:6px}
+  .qbanner{margin-top:16px;border-radius:14px;overflow:hidden;position:relative;background:linear-gradient(120deg,#2b2140,#5b2a8c);color:#fff;padding:22px 18px;display:flex;align-items:center;gap:14px;min-height:104px}
+  .qbanner .qb-ic{font-size:34px}
+  .qbanner .qb-t{font-size:15.5px;font-weight:700}
+  .qbanner .qb-s{font-size:12.5px;opacity:.9;margin-top:4px}
+  .qbanner .qb-go{margin-left:auto;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);padding:9px 14px;border-radius:20px}
+  .qbanner .adtag{position:absolute;top:8px;right:10px;font-size:8px;opacity:.6}
+  /* 대기열 임박 알림 깜빡임 (90%↑) */
+  @keyframes qblink{0%,100%{background:#E60578;color:#fff}50%{background:#FFD9EC;color:#E60578}}
+  .q-alert{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:800;padding:14px;border-radius:12px;margin-bottom:14px;animation:qblink .7s steps(1,end) infinite}
+  @keyframes qpulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(230,5,120,0)}50%{box-shadow:inset 0 0 0 7px rgba(230,5,120,.55)}}
+  .screen.qflash{animation:qpulse .7s ease-in-out infinite}
+  .stage-label{text-align:center;font-size:11px;font-weight:700;letter-spacing:.3em;color:var(--t2);background:linear-gradient(#e9e9e9,#dcdcdc);border-radius:6px;padding:8px;margin-bottom:4px}
+  .seatgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;padding:12px;background:#FAFAFA;border-radius:12px;border:1px solid var(--card-border)}
+  .seat{aspect-ratio:1;border-radius:4px;border:0;background:#D8E5D8;transition:.1s;padding:0}
+  .seat.vip{background:#F3D4E6} .seat.r{background:#D8E5D8} .seat.s{background:#D6E0F2}
+  .seat.sold{background:#E4E4E4;cursor:not-allowed}
+  .seat.sel{background:var(--brand);box-shadow:0 0 0 2px rgba(230,5,120,.3)}
+  .seat:not(.sold):hover{filter:brightness(.94)}
+  .seatlegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--t2)}
+  .seatlegend span{display:flex;align-items:center;gap:5px}
+  .sqr{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .holdbar{display:flex;align-items:center;gap:9px;background:var(--brand-tint-bg);border:1px solid var(--brand-tint-border);border-radius:10px;padding:10px 13px;font-size:12.5px;color:var(--brand);font-weight:600}
+  .holdbar .ht{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:800}
+  .priceline{border:1px solid var(--card-border);border-radius:12px;padding:14px;box-shadow:var(--shadow-card);margin-bottom:10px}
+  .priceline .pl-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .priceline .pl-seat{font-size:14px;font-weight:700;color:var(--t1)}
+  .priceline .pl-grade{font-size:11px;color:var(--t-muted)}
+  .selectbox{position:relative}
+  .selectbox select{width:100%;-webkit-appearance:none;appearance:none;border:1px solid var(--divider);border-radius:8px;padding:12px 34px 12px 14px;font-size:14px;font-family:inherit;color:var(--t1);background:#fff}
+  .selectbox:after{content:"⌄";position:absolute;right:14px;top:8px;color:#9a9a9a;font-size:16px;pointer-events:none}
+  .priceline .pl-amt{text-align:right;font-size:14px;font-weight:700;color:var(--t1);margin-top:8px}
+  .pm{display:flex;align-items:center;gap:12px;border:1px solid var(--card-border);background:#fff;border-radius:10px;padding:13px 15px;transition:.15s;width:100%;text-align:left}
+  .pm[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset;background:var(--brand-tint-bg)}
+  .pm .radio{width:18px;height:18px;border-radius:50%;border:2px solid #CFCFCF;flex:0 0 auto;position:relative}
+  .pm[aria-pressed="true"] .radio{border-color:var(--brand)}
+  .pm[aria-pressed="true"] .radio:after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--brand)}
+  .pm .pm-t{font-size:14px;font-weight:600;color:var(--t1)}
+  .pm .pm-s{font-size:11px;color:var(--t-muted);margin-top:1px}
+  .pm .pm-ic{font-size:18px}
+  .check{display:flex;align-items:flex-start;gap:10px;padding:9px 0;cursor:pointer}
+  .check .box{width:20px;height:20px;border-radius:6px;border:1.5px solid #CFCFCF;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-size:12px;transition:.12s}
+  .check[data-on="1"] .box{background:var(--brand);border-color:var(--brand)}
+  .check .ct{font-size:12.5px;color:var(--t2);line-height:1.5}
+  .check .ct b{color:var(--t1);font-weight:600}
+  .field{margin-top:13px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:6px}
+  .field input{width:100%;border:1px solid var(--divider);border-radius:8px;padding:13px 14px;font-size:14px;font-family:inherit;color:var(--t1)}
+  .field input:focus{outline:none;border-color:var(--brand)}
+  .inline-in{display:flex;gap:8px}
+  .inline-in .btn{width:auto;padding:0 16px;font-size:13px;white-space:nowrap}
+  .applyrow{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--card-border);border-radius:10px;padding:13px 15px;background:#fff}
+  .applyrow .ar-l{display:flex;align-items:center;gap:10px}
+  .applyrow .ar-ic{font-size:17px}
+  .applyrow .ar-t{font-size:13.5px;font-weight:600;color:var(--t1)}
+  .applyrow .ar-s{font-size:11px;color:var(--t-muted);margin-top:1px}
+  .applyrow .ar-v{font-size:13px;font-weight:700;color:var(--brand);font-variant-numeric:tabular-nums}
+  .applyrow.on{border-color:var(--brand);background:var(--brand-tint-bg)}
+  .applyrow .chevr{color:#C4C4C4;font-size:15px}
+  .toast-ok{display:flex;align-items:center;gap:8px;background:#F0FBF4;border:1px solid #BCE9CC;color:var(--ok);padding:11px 13px;border-radius:10px;font-size:12.5px;font-weight:600}
+  .toast-err{display:flex;align-items:center;gap:8px;background:#FEF1F1;border:1px solid #F5C9C9;color:#D8453F;padding:11px 13px;border-radius:10px;font-size:12.5px;font-weight:600}
+  .sheet-dim{position:absolute;inset:0;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:.2s;z-index:20}
+  .sheet-dim.on{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;transform:translateY(100%);transition:.26s cubic-bezier(.2,.7,.3,1);z-index:21;max-height:88%;overflow-y:auto;padding:8px 20px 28px}
+  .sheet-dim.on .sheet{transform:none}
+  .sheet-grip{width:40px;height:4px;border-radius:3px;background:#E0E0E0;margin:8px auto 14px}
+  .gate-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gate-tab{border:1px solid var(--card-border);background:#fff;border-radius:10px;padding:12px 10px;text-align:left;transition:.15s}
+  .gate-tab .gt-t{font-size:13.5px;font-weight:700;color:var(--t1)}
+  .gate-tab .gt-s{font-size:11px;color:var(--t-muted);margin-top:3px;line-height:1.4}
+  .gate-tab[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-tint-bg);box-shadow:0 0 0 1px var(--brand) inset}
+  .gate-tab .chk{float:right;color:var(--brand);font-weight:800;opacity:0}
+  .gate-tab[aria-pressed="true"] .chk{opacity:1}
+  .done-hero{text-align:center;padding:28px 10px 10px}
+  .done-ring{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;display:grid;place-items:center;background:var(--brand-tint-bg);color:var(--brand);font-size:34px;border:2px solid var(--brand-tint-border)}
+  .done-hero h2{margin:0;font-size:20px;font-weight:700;color:#191919;line-height:1.4}
+  .ordno{display:inline-flex;margin-top:14px;border:1px solid #D0D0D0;border-radius:99px;padding:6px 15px;font-size:13px;color:#595959;font-weight:600;font-variant-numeric:tabular-nums}
+  .ticket-stub{margin-top:8px;border:1px solid var(--card-border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-card)}
+  .stub-top{background:linear-gradient(135deg,#7d2ff0,#e60578 60%,#ff6a3d);color:#fff;padding:16px;position:relative}
+  .stub-top .st-ttl{font-size:16px;font-weight:800}
+  .stub-top .st-sub{font-size:12px;opacity:.9;margin-top:3px}
+  .stub-perf{display:flex;justify-content:space-between;padding:6px 0}
+  .stub-perf .k{font-size:12px;color:var(--t-muted)} .stub-perf .v{font-size:13px;color:var(--t1);font-weight:600}
+  .zigzag{height:12px;background:radial-gradient(circle at 6px -2px,transparent 6px,var(--card) 6px) repeat-x;background-size:12px 12px;background-position:0 -6px}
+  .md-wrap{margin-top:20px}
+  .md-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .md-head .mh-t{font-size:15px;font-weight:700;color:var(--t1)}
+  .md-head .mh-more{font-size:12px;color:var(--brand);font-weight:700}
+  .md-scroll{display:flex;gap:11px;overflow-x:auto;padding-bottom:6px;margin:0 -20px;padding-left:20px;padding-right:20px}
+  .md-scroll::-webkit-scrollbar{height:0}
+  .md-card{flex:0 0 128px}
+  .md-thumb{height:128px;border-radius:12px;position:relative;overflow:hidden;display:grid;place-items:center;font-size:36px;color:#fff}
+  .md-nm{font-size:12.5px;color:var(--t1);font-weight:600;margin-top:8px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .md-pr{font-size:13px;font-weight:800;color:var(--t1);margin-top:3px}
+  .md-badge{position:absolute;top:7px;left:7px;font-size:9px;font-weight:800;background:rgba(0,0,0,.4);color:#fff;padding:3px 7px;border-radius:20px}
+  .stepdots{display:flex;gap:5px;justify-content:center;padding:12px 0 2px}
+  .stepdots i{width:6px;height:6px;border-radius:50%;background:#E0E0E0}
+  .stepdots i.on{background:var(--brand);width:18px;border-radius:3px}
+  .fadein{animation:fade .32s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .hint{font-size:11px;color:var(--ink3);text-align:center;max-width:360px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ===== HEADER : title · version · updated ===== -->
+  <header class="card apphead">
+    <div class="hl">
+      <div class="logodot">B</div>
+      <div>
+        <h1>베리즈 티켓 · 예매 플로우 목업</h1>
+        <p class="sub">그레이톤 · 화이트 카드셀 · 모바일 기준 하우스 스타일</p>
+      </div>
+    </div>
+    <div class="headmeta">
+      <span class="metachip">버전 <b>v1.0</b></span>
+      <span class="metachip">수정일 <b>2026-07-12</b></span>
+      <button class="ghost-btn" id="viewBtn">▤ 전체 보기</button>
+      <button class="ghost-btn" id="resetBtn">↺ 처음부터</button>
+    </div>
+  </header>
+
+  <!-- ===== FLOW OVERVIEW ===== -->
+  <section class="card">
+    <div class="cardhd">
+      <h2>화면 흐름 오버뷰</h2>
+      <p>전체 화면을 한눈에 보고, 단계를 눌러 이동하세요. 회색 점선 단계는 이 설정에서 건너뜁니다.</p>
+    </div>
+    <div class="flow" id="flowMap"><div class="fstep active">
+      <button class="fbtn" data-go="product">
+        <span class="fn">STEP 1</span>
+        <span class="ftitle">상품 상세</span>
+        <span class="fmeta">탐색·발견</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="date">
+        <span class="fn">STEP 2</span>
+        <span class="ftitle">날짜 선택</span>
+        <span class="fmeta">예매</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="queue">
+        <span class="fn">STEP 3</span>
+        <span class="ftitle">대기열</span>
+        <span class="fmeta">대기열</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="seat">
+        <span class="fn">STEP 4</span>
+        <span class="ftitle">좌석 선택</span>
+        <span class="fmeta">좌석점유</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="price">
+        <span class="fn">STEP 5</span>
+        <span class="ftitle">가격(권종) 선택</span>
+        <span class="fmeta">예매</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="booker">
+        <span class="fn">STEP 6</span>
+        <span class="ftitle">예매자 정보</span>
+        <span class="fmeta">예매</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="pay">
+        <span class="fn">STEP 7</span>
+        <span class="ftitle">결제수단 선택</span>
+        <span class="fmeta">결제</span>
+      </button></div><div class="fconn"></div><div class="fstep">
+      <button class="fbtn" data-go="done">
+        <span class="fn">STEP 8</span>
+        <span class="ftitle">예매 완료</span>
+        <span class="fmeta">예매</span>
+      </button></div></div>
+    <div class="flagline" id="preFlag" style="display: block;">🔑 <b>선예매 인증</b>은 <b>예매 준비</b> 단계에서 상품당 1개 유형(좌측 옵션에서 선택)으로 처리됩니다. 상시상품도 선예매 가능.</div>
+  </section>
+
+  <!-- ===== EXPERIENCE : left (유형/옵션/유저스토리) + right (mobile) ===== -->
+  <div class="exp-grid">
+    <aside class="leftcol">
+      <section class="card">
+        <div class="cardhd"><h2>유형</h2><p>축을 바꾸면 흐름이 재구성됩니다.</p></div>
+        <div class="subttl">공연 유형</div>
+        <div class="seg" id="segType">
+          <button data-v="normal" aria-pressed="true"><span class="dt"></span>일반상품</button>
+          <button data-v="always" aria-pressed="false"><span class="dt"></span>상시상품</button>
+        </div>
+        <div class="segnote" id="typeNote">공연 상품 → 회차 <b>6개 이하는 리스트</b>, <b>7개 이상은 캘린더</b>로 선택 (옵션에서 전환).</div>
+        <div class="subttl mt">예매 유형</div>
+        <div class="seg blue" id="segSale">
+          <button data-v="general" aria-pressed="false"><span class="dt"></span>일반예매</button>
+          <button data-v="presale" aria-pressed="true"><span class="dt"></span>선예매</button>
+        </div>
+        <div class="segnote" id="saleNote"><b>예매 준비</b> 단계에서 <b>선예매 인증</b>(상품당 1개 유형)을 진행합니다. 상시상품도 가능.</div>
+        <div id="gateOpt"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardhd"><h2>옵션</h2><p>on/off 즉시 반영</p></div>
+        <div class="toggles" id="toggles"><div class="opt ">
+      <span class="ol">대기열 사용</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="queue"></button>
+    </div><div class="opt ">
+      <span class="ol">예매율 표시</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="qRate"></button>
+    </div><div class="opt ">
+      <span class="ol">대기열 배너</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="qBanner"></button>
+    </div><div class="opt ">
+      <span class="ol">공연일 많음(캘린더)</span>
+      <button class="switch" role="switch" aria-checked="false" data-k="manyRounds"></button>
+    </div><div class="opt ">
+      <span class="ol">준비 자동안내(진입시)</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="autoPrep"></button>
+    </div><div class="opt ">
+      <span class="ol">공지사항</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="notice"></button>
+    </div><div class="opt ">
+      <span class="ol">배송형 상품</span>
+      <button class="switch" role="switch" aria-checked="false" data-k="delivery"></button>
+    </div><div class="opt ">
+      <span class="ol">할인쿠폰</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="coupon"></button>
+    </div><div class="opt ">
+      <span class="ol">공연예매권</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="voucher"></button>
+    </div><div class="opt ">
+      <span class="ol">완료 MD 홍보</span>
+      <button class="switch" role="switch" aria-checked="true" data-k="mdPromo"></button>
+    </div></div>
+      </section>
+    </aside>
+
+    <div class="stagecol">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="dots">●●● 📶 🔋</span></div>
+        <div class="gnb">
+          <button class="back" id="gnbBack" aria-label="뒤로">‹</button>
+          <span class="title" id="gnbTitle">공연 상세</span>
+          <span class="steptag" id="gnbStep"></span>
+        </div>
+        <div class="screen has-bar" id="screen">
+  <div class="fadein">
+    <div class="poster"><span class="ptag">🎤 단독판매</span>
+      <div class="pttl">2026 BERRIZ<br>FAN CONCERT [RE:START]</div></div>
+
+    <div class="pad" style="padding-bottom:10px">
+      <div style="display:flex;gap:6px;margin-bottom:9px">
+        <span class="badge new">NEW</span><span class="badge excl">단독</span>
+        <span class="badge pre">선예매</span>
+        
+      </div>
+      <div style="font-size:18px;font-weight:700;color:var(--t1);line-height:1.35">2026 BERRIZ FAN CONCERT [RE:START]</div>
+      <div class="kv" style="padding-top:10px"><span class="k">공연장</span><span class="v">올림픽공원 KSPO DOME</span></div>
+      <div class="kv" style="padding-top:0"><span class="k">공연기간</span><span class="v">2026.08.15(토) ~ 08.16(일)</span></div>
+      <div class="row" style="margin-top:10px">
+        <div><span class="strike">최대 154,000원</span><br><span class="price">99,000<span style="font-size:14px">원~</span></span></div>
+        <span class="badge line">쿠폰 받기</span>
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:4px;padding-bottom:10px">
+      <div class="tinylabel" style="margin-bottom:9px">핵심 정보</div>
+      <div class="keyinfo">
+        <div class="ki"><div class="ki-ic">🎫</div><div class="ki-l">수령방법</div><div class="ki-v">모바일 티켓</div></div>
+        <div class="ki"><div class="ki-ic">⚡</div><div class="ki-l">발권</div><div class="ki-v">즉시 발권</div></div>
+        <div class="ki"><div class="ki-ic">⏱️</div><div class="ki-l">관람시간</div><div class="ki-v">약 120분</div></div>
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:2px;padding-bottom:10px">
+      <div class="saletl">
+        <div class="stl-top">
+          <span class="tinylabel">📅 판매 일정</span>
+          <div class="stl-cd">
+            <span class="stl-dday blue" id="ddMain">D-34</span>
+            <span class="stl-timer" id="tmMain">33일 21:48:34</span>
+          </div>
+        </div>
+        <div class="stl-track" style="--prog:100%">
+          <div class="stl-n done active blue"><div class="stl-dot"></div><div class="stl-lb">선예매</div><div class="stl-dt">07.10 20:00</div></div>
+          <div class="stl-n done "><div class="stl-dot"></div><div class="stl-lb">일반예매</div><div class="stl-dt">07.12 20:00</div></div>
+          <div class="stl-n"><div class="stl-dot"></div><div class="stl-lb">공연</div><div class="stl-dt">08.15 19:00</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--t-muted);margin-top:11px;text-align:center" id="schedCap">공연까지</div>
+      </div></div>
+
+    <div class="pad" style="padding-top:4px;padding-bottom:10px">
+      <div class="row" style="margin-bottom:4px"><span class="tinylabel">📢 공지사항</span><span style="font-size:11px;color:var(--t-muted)">전체보기 ›</span></div>
+      <div class="acard p" style="padding:4px 16px">
+        <div class="noti-row"><span class="nb">필독</span><span class="nt">입장 및 관람 안내 (티켓 수령·입장 시간)</span><span class="nc">›</span></div>
+        <div class="noti-row"><span class="nb">안내</span><span class="nt">주차장 이용 및 대중교통 안내</span><span class="nc">›</span></div>
+        <div class="noti-row"><span class="nb">안전</span><span class="nt">안전한 공연 관람을 위한 수칙 안내</span><span class="nc">›</span></div>
+      </div></div>
+
+    <div class="pad" style="padding-top:4px">
+      <div class="notice">
+        <li>1인 최대 2매까지 예매 가능합니다.</li>
+        <li>본 공연은 전 좌석 지정석입니다.</li>
+        
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:6px">
+      <div class="tinylabel" style="margin-bottom:9px">상품 상세</div>
+      <div class="detailimgs">
+        <div class="dimg" style="background:linear-gradient(150deg,#7d2ff0,#e60578)">공연 상세 이미지 · 라인업</div>
+        <div class="dimg" style="background:linear-gradient(150deg,#e60578,#ff6a3d)">MD 패키지 구성 안내</div>
+        <div class="dimg" style="background:linear-gradient(150deg,#2b2140,#5b2a8c)">좌석 배치도 · 관람 안내</div>
+      </div>
+    </div>
+  </div></div>
+        <div class="btmbar" id="btmbar" style="display: block;"><button class="btn" id="ctaMain">선예매 인증</button></div>
+        <div class="homeind"></div>
+        <div class="sheet-dim" id="sheetDim"><div class="sheet" id="sheet"></div></div>
+      </div>
+      <p class="hint">화면 안 버튼은 실제 동작합니다. 좌측 유형·옵션을 바꾸면 흐름·현재 화면·유저 스토리에 바로 반영돼요.</p>
+    </div>
+
+    <aside class="rightcol">
+      <section class="card">
+        <div class="cardhd"><h2>유저 스토리</h2><p id="storyStep">상품 상세 · 탐색·발견</p></div>
+        <ul class="stories" id="storyList"><li>나는 관객으로서 공연·가격·좌석 정보를 비교해 예매를 시작할지 결정할 수 있다</li><li>나는 팬으로서 오픈 일정을 보고 선예매/일반예매 시점에 맞춰 진입할 수 있다</li></ul>
+        <div class="relrow" id="relRow"><div class="relcap" style="width:100%">이 화면 관련 유형 · 옵션</div><span class="tag ty">일반상품</span><span class="tag ty">상시상품</span><span class="tag ty">일반예매</span><span class="tag ty">선예매</span><span class="tag op">공지사항</span><span class="tag op">배송형 상품</span><span class="tag op">상품 상세이미지</span></div>
+      </section>
+    </aside>
+  </div>
+
+  <div id="overviewWrap" style="display:none">
+    <section class="card">
+      <div class="cardhd"><h2>전체 화면 오버뷰</h2><p>클릭 없이 모든 화면을 한 판에. 좌측 유형·옵션을 바꾸면 다시 그려집니다.</p></div>
+      <div class="ovgrid" id="ovGrid"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+"use strict";
+const OPEN={pre:new Date("2026-07-10T20:00:00+09:00"),gen:new Date("2026-07-12T20:00:00+09:00"),show:new Date("2026-08-15T19:00:00+09:00")};
+
+const cfg={
+  ptype:"normal", sale:"general", presaleType:"code", manyRounds:false, autoPrep:true, notReady:false, seatRemain:true, beforeOpen:false,
+  queue:true, qRate:true, qBanner:true,
+  notice:true, delivery:false,
+  coupon:true, voucher:true, mdPromo:true,
+};
+
+const STEPS={
+  product:{title:"상품 상세",meta:"공연·오픈일정·공지",area:"탐색·발견"},
+  date:{title:"날짜 선택",meta:"리스트 / 캘린더",area:"예매"},
+  queue:{title:"대기열",meta:"순번·예매율·배너",area:"대기열"},
+  seat:{title:"좌석 선택",meta:"좌석맵·점유타이머",area:"좌석점유"},
+  price:{title:"가격(권종) 선택",meta:"권종·할인 선택",area:"예매"},
+  booker:{title:"예매자 정보",meta:"정보·수령방법",area:"예매"},
+  pay:{title:"결제수단 선택",meta:"쿠폰·예매권·결제",area:"결제"},
+  done:{title:"예매 완료",meta:"발권·MD 홍보",area:"예매"},
+};
+
+/* per-screen: 유형 태그 · 옵션 태그 · 유저 스토리(한 문장) */
+const STORY={
+  product:{types:["일반상품","상시상품","일반예매","선예매"],options:["공지사항","배송형 상품","상품 상세이미지","선예매 인증","티켓 오픈 전"],stories:[
+    "나는 관객으로서 공연 정보·플래그·판매일정(D-day)을 보고 예매 시점을 판단할 수 있다",
+    "나는 선예매 대상자로서 로그인·본인인증을 마치고 선예매 인증을 완료해야 예매할 수 있다",
+    "나는 관객으로서 티켓 오픈 전이면 오픈까지 카운트다운을 보고 대기하다 예매할 수 있다"]},
+  date:{types:["일반상품"],options:["공연일 6개↓ 리스트","공연일 7개↑ 캘린더","등급별 잔여석","준비 자동안내(오픈 전)"],stories:[
+    "나는 관객으로서 원하는 공연 일정을 등급별 잔여석과 함께 골라 선택할 수 있다",
+    "나는 장기공연 관객으로서 캘린더에서 관람일·시간을 골라 선택할 수 있다",
+    "나는 관객으로서 예매하기를 누를 때 준비가 안 됐으면 바텀시트로 로그인·본인인증·선예매 인증을 마칠 수 있다"]},
+  queue:{types:["일반예매","선예매(별도 대기열)"],options:["자동 입장","예매율 표시","대기열 배너"],stories:[
+    "나는 관객으로서 공정한 순번으로 대기하며 예상 시간을 가늠할 수 있다",
+    "나는 관객으로서 순번이 되면 자동으로 입장되고, 임박 시 알림으로 놓치지 않을 수 있다"]},
+  seat:{types:["전 좌석 지정석"],options:["좌석 유지 카운트다운","1인 2매 제한"],stories:[
+    "나는 관객으로서 좌석맵에서 원하는 좌석을 직접 골라 선택할 수 있다",
+    "나는 관객으로서 유지 시간 안에 좌석을 확보해 결제까지 이어갈 수 있다"]},
+  price:{types:["VIP / R / S 등급"],options:["권종 ＋/− 선택","좌석 유지 카운트다운"],stories:[
+    "나는 관객으로서 ＋/−로 권종별 매수를 지정해 최종 금액을 확정할 수 있다"]},
+  booker:{types:["예매자 정보","모바일·현장수령·배송"],options:["이름·연락처·이메일","수령방법","배송 시 배송지"],stories:[
+    "나는 예매자로서 이름·연락처·이메일을 입력하고 수령방법을 선택할 수 있다",
+    "나는 예매자로서 배송을 고르면 배송지를 입력하고 배송비를 확인할 수 있다"]},
+  pay:{types:["카드·카카오페이 등"],options:["할인쿠폰·예매권","취소수수료 안내","약관 전체동의","배송비 반영"],stories:[
+    "나는 결제자로서 쿠폰·예매권을 적용해 최종 결제금액을 확정할 수 있다",
+    "나는 결제자로서 취소 수수료를 미리 보고 약관에 동의한 뒤 결제할 수 있다"]},
+  done:{types:["예매완료","발권"],options:["완료 MD 홍보","완료 알림"],stories:[
+    "나는 관객으로서 예매 내역·발권 정보를 받아 입장을 준비할 수 있다",
+    "나는 팬으로서 예매 직후 공연 MD를 이어서 구매할 수 있다"]},
+};
+
+const $=s=>document.querySelector(s);
+let screen=$("#screen");
+let btmbar=$("#btmbar");
+let overview=false, overviewMode=false, openAt=null, openTimer=null;
+function setBar(html){ btmbar.innerHTML=html; btmbar.style.display="block"; }
+function hideBar(){ btmbar.style.display="none"; btmbar.innerHTML=""; }
+let stepKey="product";
+let seatsPicked=[], lineItems=[], payMethod=null, recvMethod="mobile";
+let couponOn=false, voucherOn=false, agree={a:false,b:false,c:false};
+let presaleVerified=false, queueReady=false, loggedIn=true, idVerified=true;
+let holdLeft=420, holdTimer=null, queueTimer=null, cdTimer=null;
+
+/* ---- sequence ---- */
+function buildSeq(){
+  const s=["product"];
+  if(cfg.ptype!=="always") s.push("date");
+  if(cfg.queue) s.push("queue");
+  s.push("seat","price","booker","pay","done");
+  return s;
+}
+let SEQ=buildSeq();
+const idx=()=>SEQ.indexOf(stepKey);
+
+/* ---- options UI ---- */
+const TOG=[
+  {k:"beforeOpen",l:"티켓 오픈 전",scope:"상품상세"},
+  {k:"notice",l:"공지사항",scope:"상품상세"},
+  {k:"delivery",l:"배송형 상품",scope:"상품상세"},
+  {k:"manyRounds",l:"공연일 많음(캘린더)",scope:"날짜"},
+  {k:"seatRemain",l:"등급별 잔여석",scope:"날짜"},
+  {k:"queue",l:"대기열 사용",scope:"대기열"},
+  {k:"qRate",l:"예매율 표시",dep:"queue",scope:"대기열"},
+  {k:"qBanner",l:"대기열 배너",dep:"queue",scope:"대기열"},
+  {k:"autoPrep",l:"준비 자동안내(진입시)",scope:"예매 준비"},
+  {k:"notReady",l:"예매 준비 미완료",scope:"예매 준비"},
+  {k:"coupon",l:"할인쿠폰",scope:"결제"},
+  {k:"voucher",l:"공연예매권",scope:"결제"},
+  {k:"mdPromo",l:"완료 MD 홍보",scope:"완료"},
+];
+function renderToggles(){
+  const order=["상품상세","날짜","대기열","예매 준비","결제","완료"];
+  const groups={};
+  TOG.forEach(t=>{ (groups[t.scope]=groups[t.scope]||[]).push(t); });
+  $("#toggles").innerHTML=order.filter(g=>groups[g]).map(g=>`
+    <div class="opt-group">
+      <div class="opt-gh">${g} 화면</div>
+      <div class="opt-list">
+        ${groups[g].map(t=>{ const dis=t.dep && !cfg[t.dep];
+          return `<div class="opt ${dis?'dis':''}">
+            <span class="ol">${t.l}</span>
+            <button class="switch" role="switch" aria-checked="${cfg[t.k]?'true':'false'}" data-k="${t.k}" ${dis?'disabled':''}></button>
+          </div>`; }).join("")}
+      </div>
+    </div>`).join("");
+  $("#toggles").querySelectorAll(".switch").forEach(b=>{
+    b.onclick=()=>{ const k=b.dataset.k; cfg[k]=!cfg[k];
+      if(k==="notReady"){ loggedIn=idVerified=!cfg.notReady; }
+      if(k==="beforeOpen"){ openAt = cfg.beforeOpen ? new Date(Date.now()+10000) : null; }
+      applyCfg(); };
+  });
+}
+function renderSegs(){
+  $("#segType").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===cfg.ptype));
+  const alwaysSel=cfg.ptype==="always";
+  $("#segSale").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===cfg.sale));
+  $("#typeNote").innerHTML = alwaysSel
+    ? "상시 판매 상품 → <b>날짜선택 없음</b> (선예매는 자격 인증만 진행)."
+    : "공연 상품 → 회차 <b>6개 이하는 리스트</b>, <b>7개 이상은 캘린더</b>로 선택 (옵션에서 전환).";
+  const presale=cfg.sale==="presale";
+  $("#saleNote").innerHTML = presale
+    ? "<b>예매 준비</b> 단계에서 <b>선예매 인증</b>(상품당 1개 유형)을 진행합니다. 상시상품도 가능."
+    : "오픈 시간에 누구나 진입. 선예매 게이트 없음.";
+  const GT=[{k:"code",l:"선예매 코드"},{k:"fan",l:"팬클럽 인증"},{k:"weverse",l:"위버스 멤버십"},{k:"berriz",l:"베리즈 팬클럽"}];
+  const go=$("#gateOpt");
+  if(presale){
+    go.innerHTML=`<div class="subttl mt">선예매 인증 유형 <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0">· 상품당 1개</span></div>
+      <div class="seg" id="segGate">${GT.map(g=>`<button data-v="${g.k}" aria-pressed="${g.k===cfg.presaleType}">${g.l}</button>`).join("")}</div>`;
+    go.querySelectorAll("#segGate button").forEach(b=>b.onclick=()=>{cfg.presaleType=b.dataset.v;renderSegs();});
+  } else go.innerHTML="";
+}
+
+/* ---- flow map (horizontal overview) ---- */
+function renderFlow(){
+  const cur=idx();
+  const all=["product","date","queue","seat","price","booker","pay","done"];
+  const html=[];
+  all.forEach((k,i)=>{
+    const inSeq=SEQ.includes(k), pos=SEQ.indexOf(k);
+    let cls="fstep";
+    if(!inSeq) cls+=" skip";
+    else if(pos<cur) cls+=" done";
+    else if(pos===cur) cls+=" active";
+    html.push(`<div class="${cls}">
+      <button class="fbtn" ${inSeq?"":"disabled"} data-go="${inSeq?k:''}">
+        <span class="fn">${inSeq?"STEP "+(pos+1):"— 건너뜀"}</span>
+        <span class="ftitle">${STEPS[k].title}</span>
+        <span class="fmeta">${STEPS[k].area}</span>
+      </button></div>`);
+    if(i<all.length-1) html.push(`<div class="fconn"></div>`);
+  });
+  $("#flowMap").innerHTML=html.join("");
+  $("#flowMap").querySelectorAll("[data-go]").forEach(b=>{const k=b.dataset.go; if(k) b.onclick=()=>goto(k);});
+  $("#preFlag").style.display = "none";
+  $("#preFlag").innerHTML = "";
+}
+function renderStories(){
+  const s=STORY[stepKey], st=STEPS[stepKey];
+  $("#storyStep").textContent=`${st.title} · ${st.area}`;
+  $("#storyList").innerHTML=s.stories.map(x=>`<li>${x}</li>`).join("");
+  $("#relRow").innerHTML=`<div class="relcap" style="width:100%">이 화면 관련 유형 · 옵션</div>`
+    + s.types.map(t=>`<span class="tag ty">${t}</span>`).join("")
+    + s.options.map(o=>`<span class="tag op">${o}</span>`).join("");
+}
+
+/* ---- nav ---- */
+function goto(k){ if(!SEQ.includes(k))return; clearInterval(holdTimer);clearInterval(queueTimer); stepKey=k; paint(); }
+function next(){ const i=idx(); if(i<SEQ.length-1) goto(SEQ[i+1]); }
+function prev(){ const i=idx(); if(i>0) goto(SEQ[i-1]); }
+function paint(){
+  renderFlow();renderStories();
+  const BOOK=["seat","price","booker","pay"];
+  $("#gnbStep").textContent = BOOK.includes(stepKey) ? (BOOK.indexOf(stepKey)+1)+" / "+BOOK.length : "";
+  screen.scrollTop=0; screen.className="screen";
+  hideBar(); closeSheet(); clearInterval(openTimer);
+  SCREENS[stepKey]();
+}
+function applyCfg(){
+  SEQ=buildSeq();
+  if(!SEQ.includes(stepKey)) stepKey="product";
+  renderSegs();renderToggles();paint();
+  if(overviewMode) buildOverview();
+}
+
+const money=n=>n.toLocaleString("ko-KR");
+function fmtCd(ms){if(ms<=0)return"00:00:00";const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),ss=s%60,p=n=>String(n).padStart(2,"0");return(d>0?d+"일 ":"")+p(h)+":"+p(m)+":"+p(ss);}
+function dday(t){const diff=Math.ceil((t-new Date())/86400000);return diff>0?"D-"+diff:(diff===0?"D-DAY":"오픈");}
+function gateName(){return {code:"선예매 코드",fan:"팬클럽 인증",weverse:"위버스 멤버십",berriz:"베리즈 팬클럽"}[cfg.presaleType];}
+/* 티켓 오픈 전이면 버튼을 잠그고 오픈까지 카운트다운, 시간 되면 활성화 */
+function armOpenCountdown(btnId, readyLabel){
+  clearInterval(openTimer);
+  if(overview) return;
+  const btn=$("#"+btnId); if(!btn) return;
+  if(!cfg.beforeOpen){ btn.disabled=false; btn.textContent=readyLabel; return; }
+  if(!openAt || openAt<=new Date()) openAt=new Date(Date.now()+10000);
+  if(!$("#cdMini")){
+    const mini=document.createElement("div");
+    mini.id="cdMini"; mini.className="cd-mini";
+    mini.innerHTML=`<button id="cdStart">▶ 카운트다운 시작</button><button id="cdSkip">⏭ 건너뛰기</button>`;
+    btmbar.insertBefore(mini, btmbar.firstChild);
+  }
+  const upd=()=>{ const ms=openAt-new Date();
+    if(ms<=0){ clearInterval(openTimer); btn.disabled=false; btn.textContent=readyLabel; }
+    else { btn.disabled=true; btn.textContent="티켓 오픈까지 "+fmtCd(ms); } };
+  upd(); openTimer=setInterval(upd,1000);
+  const sB=$("#cdStart"); if(sB) sB.onclick=()=>{ openAt=new Date(Date.now()+10000); armOpenCountdown(btnId, readyLabel); };
+  const kB=$("#cdSkip"); if(kB) kB.onclick=()=>{ clearInterval(openTimer); openAt=new Date(Date.now()-1000); btn.disabled=false; btn.textContent=readyLabel; };
+}
+
+/* ================= SCREENS ================= */
+const SCREENS={};
+
+SCREENS.product=function(){
+  $("#gnbTitle").textContent="공연 상세";
+  screen.classList.add("has-bar");
+  const always=cfg.ptype==="always";
+  const presale=cfg.sale==="presale";
+  let schedHtml;
+  {
+    const now=new Date();
+    const bo=cfg.beforeOpen;
+    const mk=off=>new Date(now.getTime()+off*86400000);
+    const preT=bo?mk(3):mk(-2), genT=bo?mk(5):mk(0);
+    const fmtD=d=>String(d.getMonth()+1).padStart(2,"0")+"."+String(d.getDate()).padStart(2,"0");
+    const stMap={done:"완료",active:"진행중",soon:"예정",tba:"추가 예정"};
+    const rows=[
+      {lb:"선예매 1차", t:preT, st: bo?"soon":"done"},
+      {lb:"일반예매", t:genT, st: bo?"soon":"active"},
+      {lb:"추가 오픈", t:null, st:"tba"},
+    ];
+    schedHtml=`
+      <div class="saletl">
+        <div class="stl-top">
+          <span class="tinylabel">📅 판매 일정</span>
+          <span class="stl-dday ${bo?'blue':''}">${bo?dday(preT):'판매중'}</span>
+        </div>
+        <div class="schedchips">
+          ${rows.map(r=>{
+            const badge = r.st==="tba" ? "추가 예정" : (bo && r.t ? dday(r.t) : stMap[r.st]);
+            const dtxt = r.t ? fmtD(r.t) : "미정";
+            return `<span class="schedchip ${r.st}"><span class="sc-lb">${r.lb}</span><span class="sc-dt">${dtxt}</span><b>${badge}</b></span>`;
+          }).join("")}
+        </div>
+        <div class="schednote-sm">＋ 선예매·일반예매 이후에도 <b>추가 오픈</b>이 열릴 수 있어요</div>
+      </div>`;
+  }
+  const recv = cfg.delivery ? "현장수령 · 모바일티켓 · 배송" : "현장수령 · 모바일티켓";
+  const kiDelivery = cfg.delivery
+    ? `<div class="ki"><div class="ki-ic">📦</div><div class="ki-l">배송예정일</div><div class="ki-v">공연 3일 전</div></div>`
+    : `<div class="ki"><div class="ki-ic">⚡</div><div class="ki-l">발권</div><div class="ki-v">즉시 발권</div></div>`;
+  const ctaLabel = (presale && !presaleVerified) ? "선예매 인증" : "예매하기";
+
+  screen.innerHTML=`
+  <div class="fadein">
+    <div class="poster"><span class="ptag">🎤 ${always?"공식 굿즈":"단독판매"}</span>
+      <div class="pttl">2026 BERRIZ<br>${always?"OFFICIAL GOODS":"FAN CONCERT [RE:START]"}</div></div>
+
+    <div class="pad" style="padding-bottom:10px">
+      <div style="display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap">
+        <span class="badge excl">단독</span><span class="badge new">좌석우위</span><span class="badge glob">Global Fans Only</span>
+        ${presale?'<span class="badge pre">선예매</span>':''}
+        ${presaleVerified?'<span class="badge soft">✓ 인증완료</span>':''}
+      </div>
+      <div style="font-size:18px;font-weight:700;color:var(--t1);line-height:1.35">2026 BERRIZ FAN CONCERT [RE:START]</div>
+      <div class="kv" style="padding-top:10px"><span class="k">공연장</span><span class="v">올림픽공원 KSPO DOME</span></div>
+      <div class="kv" style="padding-top:0"><span class="k">${always?"판매기간":"공연기간"}</span><span class="v">${always?"상시":"2026.08.15(토) ~ 08.16(일)"}</span></div>
+    </div>
+
+    <div class="pad" style="padding-top:4px;padding-bottom:10px">
+      <div class="infochips">
+        <span class="ic"><span class="ic-i">🎫</span>${recv}</span>
+        ${cfg.delivery?`<span class="ic"><span class="ic-i">📦</span>일괄배송 08.12(수)</span>`:''}
+        <span class="ic"><span class="ic-i">⏱️</span>약 120분</span>
+        <span class="ic"><span class="ic-i">👤</span>만 14세 이상</span>
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:2px;padding-bottom:10px">${schedHtml}</div>
+
+    ${cfg.notice?`<div class="pad" style="padding-top:4px;padding-bottom:10px">
+      <div class="row" style="margin-bottom:4px"><span class="tinylabel">📢 공지사항</span><span style="font-size:11px;color:var(--t-muted)">전체보기 ›</span></div>
+      <div class="acard p" style="padding:4px 16px">
+        <div class="noti-row"><span class="nb">필독</span><span class="nt">입장 및 관람 안내 (티켓 수령·입장 시간)</span><span class="nc">›</span></div>
+        <div class="noti-row"><span class="nb">안내</span><span class="nt">주차장 이용 및 대중교통 안내</span><span class="nc">›</span></div>
+        <div class="noti-row"><span class="nb">안전</span><span class="nt">안전한 공연 관람을 위한 수칙 안내</span><span class="nc">›</span></div>
+      </div></div>`:""}
+
+    <div class="pad" style="padding-top:4px">
+      <div class="notice">
+        <li>1인 최대 2매까지 ${always?"구매":"예매"} 가능합니다.</li>
+        ${always?"<li>상시 판매 상품으로 재고 소진 시 조기 종료될 수 있습니다.</li>":"<li>본 공연은 전 좌석 지정석입니다.</li>"}
+        ${(presale&&(cfg.presaleType==="weverse"||cfg.presaleType==="berriz"))?"<li>위버스·베리즈 연동 선예매는 인증 즉시 구매확정되어 취소·환불이 불가합니다.</li>":""}
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:6px">
+      <div class="tinylabel" style="margin-bottom:9px">상품 상세</div>
+      <div class="detailimgs">
+        <div class="dimg" style="background:linear-gradient(150deg,#7d2ff0,#e60578)">공연 상세 이미지 · 라인업</div>
+        <div class="dimg" style="background:linear-gradient(150deg,#e60578,#ff6a3d)">MD 패키지 구성 안내</div>
+        <div class="dimg" style="background:linear-gradient(150deg,#2b2140,#5b2a8c)">좌석 배치도 · 관람 안내</div>
+      </div>
+    </div>
+  </div>`;
+  setBar(`<button class="btn" id="ctaMain">${ctaLabel}</button>`);
+
+  $("#ctaMain").onclick=()=>{ if(presale && !presaleVerified){ if(!loggedIn||!idVerified) openPrepSheet(); else openGateSheet(); } else next(); };
+  if(always && !(presale && !presaleVerified)) armOpenCountdown("ctaMain", ctaLabel);
+  clearInterval(cdTimer);
+  if(!always){
+    const tick=()=>{
+      const now=new Date();
+      const preDone=now>=OPEN.pre,genDone=now>=OPEN.gen;
+      const nextT=!preDone?OPEN.pre:(!genDone?OPEN.gen:OPEN.show);
+      const dd=$("#ddMain"),tm=$("#tmMain");
+      if(dd) dd.textContent=dday(nextT);
+      if(tm) tm.textContent=now<nextT? fmtCd(nextT-now):"진행중";
+    };
+    tick(); if(!overview) cdTimer=setInterval(tick,1000);
+  }
+};
+
+/* ---- presale auth bottom sheet (상품당 1개 유형) ---- */
+function openGateSheet(){
+  const t=cfg.presaleType;
+  const titleMap={code:"선예매 코드 인증",fan:"팬클럽 인증",weverse:"위버스 멤버십 인증",berriz:"베리즈 팬클럽 인증"};
+  const desc=`<p style="font-size:12.5px;color:var(--t2);margin:0 0 12px;line-height:1.5">`;
+  let bodyHtml="";
+  if(t==="code"){
+    bodyHtml=`${desc}발급받은 선예매 코드를 입력해 주세요.</p>
+      <div class="field"><label>선예매 코드</label><div class="inline-in">
+        <input id="codeIn" placeholder="코드를 입력하세요" autocomplete="off"/><button class="btn" id="doAuth">확인</button></div></div>`;
+  }else if(t==="fan"){
+    bodyHtml=`${desc}팬클럽 명단 대조를 위해 아래 정보를 입력해 주세요.</p>
+      <div class="field"><label>이름</label><input id="fName" placeholder="홍길동"/></div>
+      <div class="field"><label>생년월일</label><input id="fBirth" placeholder="1999.03.21"/></div>
+      <div class="field"><label>휴대폰 번호</label><input id="fPhone" placeholder="010-1234-5678"/></div>
+      <button class="btn" id="doAuth" style="margin-top:14px">팬클럽 인증</button>`;
+  }else if(t==="weverse"){
+    bodyHtml=`<div class="acard p"><div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#000;display:grid;place-items:center;color:#fff;font-weight:800">W</div>
+        <div><div style="font-weight:700;font-size:14px">Weverse 멤버십 인증</div><div class="muted" style="font-size:12px">위버스 계정으로 멤버십을 확인해요</div></div></div></div>
+      <div class="notice gray" style="margin-top:12px">
+        <li>버튼을 누르면 <b>위버스 페이지</b>로 이동합니다.</li>
+        <li>위버스에서 <b>로그인·멤버십 인증</b>을 완료하면 자동으로 돌아와요.</li>
+        <li>연동(인증) 즉시 구매확정되어 취소·환불이 제한됩니다.</li></div>
+      <button class="btn" id="doAuth" style="margin-top:14px">위버스로 이동하여 인증</button>`;
+  }else{
+    bodyHtml=`<div class="acard p"><div class="row"><div>
+        <div style="font-weight:700;font-size:14px">BERRIZ OFFICIAL FANCLUB</div>
+        <div class="muted" style="font-size:12px;margin-top:2px">BRZ-0038211 · 김베리 · 정회원</div></div>
+        <span class="badge pre">멤버</span></div></div>
+      <div class="notice gray" style="margin-top:12px"><li>베리즈 팬클럽 회원은 별도 입력 없이 바로 인증됩니다.</li>
+        <li>연동(인증) 즉시 구매확정되어 취소·환불이 제한됩니다.</li></div>
+      <button class="btn" id="doAuth" style="margin-top:14px">베리즈 팬클럽으로 인증</button>`;
+  }
+  $("#sheet").innerHTML=`
+    <div class="sheet-grip"></div>
+    <div style="font-size:18px;font-weight:700;color:#191919">${titleMap[t]} 🔑</div>
+    <p style="font-size:12.5px;color:var(--t2);margin:7px 0 14px;line-height:1.55">자격이 확인된 회원만 선예매에 참여할 수 있어요.</p>
+    ${bodyHtml}
+    <div id="gResult" style="margin-top:12px"></div>
+    <button class="btn ghost" id="gCancel" style="margin-top:10px">닫기</button>`;
+  const result=()=>$("#gResult");
+  function succeed(){
+    presaleVerified=true;
+    if(result()) result().innerHTML=`<div class="toast-ok">✓ 선예매 인증이 완료되었습니다</div>`;
+    setTimeout(()=>{ closeSheet(); if(stepKey==="product" && !(cfg.ptype==="always" && cfg.beforeOpen)) next(); else rerenderScreen(); },800);
+  }
+  $("#gCancel").onclick=closeSheet;
+  const authBtn=$("#doAuth");
+  if(t==="code"){
+    const run=()=>succeed(); // 데모: 아무 값이나 입력해도 인증
+    authBtn.onclick=run;
+    $("#codeIn").addEventListener("keydown",e=>{if(e.key==="Enter")run();});
+  }else if(t==="fan"){
+    authBtn.onclick=succeed; // 데모: 입력값 무관 인증
+  }else if(t==="weverse"){
+    authBtn.onclick=()=>{ window.open("https://weverse.io/","_blank"); authBtn.textContent="위버스에서 인증 중…"; authBtn.disabled=true; setTimeout(succeed,1200); };
+  }else{
+    authBtn.onclick=succeed;
+  }
+  $("#sheetDim").classList.add("on");
+}
+function closeSheet(){ $("#sheetDim").classList.remove("on"); }
+$("#sheetDim").addEventListener("click",e=>{ if(e.target===$("#sheetDim")) closeSheet(); });
+
+/* ---- prep : 나의 준비 상태 (로그인·본인인증·선예매인증) ---- */
+/* ---- 예매 준비 상태 : 라인 하나 + 바텀시트 (별도 페이지 아님) ---- */
+function isEntry(){ return stepKey===SEQ[1]; }
+function prepNeed(){ const n=[]; if(!loggedIn)n.push("로그인"); if(!idVerified)n.push("본인인증"); if(cfg.sale==="presale"&&!presaleVerified)n.push("선예매 인증"); return n; }
+function prepBar(){
+  const need=prepNeed(), done=need.length===0;
+  return `<button class="prepline ${done?'done':''}" id="prepLine">
+    <span class="pl-ic">${done?'✓':'!'}</span>
+    <span class="pl-tx">${done?'예매 준비 완료':'예매 준비 필요'}</span>
+    <span class="pl-go">${done?'보기 ›':'지금 하기 ›'}</span></button>`;
+}
+function wirePrep(){ const el=$("#prepLine"); if(el) el.onclick=openPrepSheet; }
+function rerenderScreen(){ if(SCREENS[stepKey]) SCREENS[stepKey](); }
+function openPrepSheet(){
+  const presale=cfg.sale==="presale";
+  const items=[
+    {k:"login",ic:"👤",t:"로그인",s:"베리즈 계정 로그인",done:loggedIn,act:"로그인"},
+    {k:"idv",ic:"🪪",t:"본인인증",s:"휴대폰 본인확인",done:idVerified,act:"인증"},
+  ];
+  if(presale) items.push({k:"pre",ic:"🔑",t:"선예매 인증",s:gateName()+" 방식",done:presaleVerified,act:"인증"});
+  $("#sheet").innerHTML=`
+    <div class="sheet-grip"></div>
+    <div style="font-size:18px;font-weight:700;color:#191919">나의 준비 상태</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      ${items.map(o=>`<div class="prep-row ${o.done?'done':''}">
+        <div class="pr-ic">${o.done?'✓':o.ic}</div>
+        <div class="pr-tx"><div class="pr-t">${o.t}</div><div class="pr-s">${o.done?'완료됨':o.s}</div></div>
+        ${o.done?'<span class="pr-badge">완료</span>':`<button class="pr-btn" data-k="${o.k}" ${(o.k==="pre"&&(!loggedIn||!idVerified))?'disabled':''}>${o.act}</button>`}
+      </div>`).join("")}
+    </div>
+    <button class="btn ghost" id="prepClose" style="margin-top:14px">닫기</button>`;
+  $("#sheet").querySelectorAll(".pr-btn").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    if(k==="login"){loggedIn=true; rerenderScreen(); openPrepSheet();}
+    else if(k==="idv"){idVerified=true; rerenderScreen(); openPrepSheet();}
+    else if(k==="pre"){ openGateSheet(); }
+  });
+  $("#prepClose").onclick=()=>{ closeSheet(); rerenderScreen(); };
+  $("#sheetDim").classList.add("on");
+}
+
+/* ---- 등급별 잔여석 칩 ---- */
+function remChips(o){
+  if(o.sold) return '';
+  const cell=(l,n,c)=>`<span class="rg ${n>0?c:'zero'}">${l} ${n>0?n:'매진'}</span>`;
+  return `<div class="remgrades">${cell('VIP',o.vip,'vip')}${cell('R',o.r,'r')}${cell('S',o.s,'s')}</div>`;
+}
+
+/* ---- date ---- */
+SCREENS.date=function(){
+  $("#gnbTitle").textContent="날짜 선택";
+  screen.classList.add("has-bar");
+  if(cfg.manyRounds){ renderCalendar(); return; }
+  const rounds=[
+    {d:"08.15 (금)",t:"19:00",vip:12,r:48,s:130},
+    {d:"08.16 (토)",t:"17:00",vip:0,r:6,s:24},
+    {d:"08.16 (토)",t:"19:00",sold:true},
+  ];
+  screen.innerHTML=`
+  <div class="pad fadein">
+    ${prepBar()}
+    <div style="display:flex;flex-direction:column;gap:10px" id="rounds">
+      ${rounds.map((r,i)=>`<button class="datecard" data-i="${i}" data-sold="${r.sold?'true':'false'}" aria-pressed="${i===0?'true':'false'}">
+        <div class="dc-top"><div class="dc-day">${r.d} <span style="font-size:14px;font-weight:600;color:var(--t2);margin-left:6px">${r.t||''}</span></div>
+        ${r.sold?'<span class="rem soldout">매진</span>':''}</div>
+        ${cfg.seatRemain?remChips(r):''}</button>`).join("")}
+    </div>
+  </div>`;
+  setBar('<button class="btn" id="dateNext">예매하기</button>');
+  wirePrep();
+  $("#rounds").querySelectorAll(".datecard").forEach(c=>{
+    c.onclick=()=>{ if(c.dataset.sold==="true")return;
+      $("#rounds").querySelectorAll(".datecard").forEach(x=>x.setAttribute("aria-pressed","false"));
+      c.setAttribute("aria-pressed","true");};
+  });
+  $("#dateNext").onclick=()=>{ if(prepNeed().length>0) openPrepSheet(); else next(); };
+  armOpenCountdown("dateNext","예매하기");
+  if(!overview && cfg.beforeOpen && cfg.autoPrep && prepNeed().length>0) openPrepSheet();
+};
+
+function renderCalendar(){
+  const y=2026,m=7; // Aug
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const hasPerf=d=>{ const dow=new Date(y,m,d).getDay(); return d>=5&&d<=24&&dow!==1; };
+  const soldDays=new Set([8,9]);
+  let cells="";
+  for(let i=0;i<first;i++) cells+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const dow=new Date(y,m,d).getDay();
+    const sold=soldDays.has(d), has=hasPerf(d)&&!sold;
+    const cl=[dow===0?"sun":"",dow===6?"sat":"",has?"has":"no",sold?"soldc":"",d===15?"sel":""].join(" ");
+    cells+=`<button class="cal-day ${cl}" data-d="${d}" ${has?"":"disabled"}>${d}</button>`;
+  }
+  screen.innerHTML=`
+  <div class="pad fadein">
+    ${prepBar()}
+    <div class="cal">
+      <div class="cal-head"><button aria-label="이전달">‹</button><span class="cm">2026. 08</span><button aria-label="다음달">›</button></div>
+      <div class="cal-grid">
+        <div class="cal-dow sun">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div><div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow sat">토</div>
+        ${cells}
+      </div>
+    </div>
+    <div id="calTimes"></div>
+  </div>`;
+  setBar('<button class="btn" id="dateNext">예매하기</button>');
+  wirePrep();
+  const grid=screen.querySelector(".cal-grid");
+  function showTimes(d){
+    const dow=new Date(y,m,d).getDay();
+    const times=(dow===0||dow===6)
+      ?[{t:"14:00",vip:8,r:22,s:60},{t:"18:30",vip:0,r:4,s:26},{t:"20:30",sold:true}]
+      :[{t:"19:30",vip:15,r:40,s:88}];
+    $("#calTimes").innerHTML=`<div class="tinylabel" style="margin:16px 0 8px">시간 선택</div>
+      <div class="timechips">${times.map((x,i)=>`<button class="tchip ${x.sold?'soldc':''}" data-t="${x.t}" aria-pressed="${(!x.sold&&i===0)?'true':'false'}" ${x.sold?'disabled':''}>
+        <div class="tct">${x.t}</div><div class="tcr">${x.sold?'마감':(cfg.seatRemain?`VIP ${x.vip}·R ${x.r}·S ${x.s}`:'예매가능')}</div></button>`).join("")}</div>`;
+    $("#calTimes").querySelectorAll(".tchip:not([disabled])").forEach(c=>c.onclick=()=>{
+      $("#calTimes").querySelectorAll(".tchip").forEach(z=>z.setAttribute("aria-pressed","false"));
+      c.setAttribute("aria-pressed","true");});
+  }
+  grid.querySelectorAll(".cal-day.has").forEach(c=>c.onclick=()=>{
+    grid.querySelectorAll(".cal-day").forEach(z=>z.classList.remove("sel"));
+    c.classList.add("sel"); showTimes(+c.dataset.d);});
+  showTimes(15);
+  $("#dateNext").onclick=()=>{ if(prepNeed().length>0) openPrepSheet(); else next(); };
+  armOpenCountdown("dateNext","예매하기");
+  if(!overview && cfg.beforeOpen && cfg.autoPrep && prepNeed().length>0) openPrepSheet();
+}
+
+/* ---- queue ---- */
+SCREENS.queue=function(){
+  $("#gnbTitle").textContent="대기열";
+  screen.classList.add("has-bar");
+  queueReady=false;
+  const presale=cfg.sale==="presale";
+  const base=presale?128:3847;
+  screen.innerHTML=`
+  <div class="pad fadein">
+    ${isEntry()?prepBar():""}
+    <div class="q-alert" id="qAlert" style="display:none">🔔 곧 입장합니다! 잠시만 기다려 주세요</div>
+    <div class="q-hero">
+      <div class="q-spin"><svg width="92" height="92" viewBox="0 0 92 92">
+        <circle cx="46" cy="46" r="40" fill="none" stroke="#EFEFEF" stroke-width="8"/>
+        <circle id="qArc" cx="46" cy="46" r="40" fill="none" stroke="#E60578" stroke-width="8" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251"/></svg>
+        <div class="q-num"><div class="n" id="qPos">${money(base)}</div><div class="l">내 앞 대기</div></div></div>
+      <div class="q-title" id="qTitle">잠시만 기다려 주세요</div>
+      <div class="q-sub" id="qSub">${presale?"선예매 통과자 대기열입니다.":"고수요 오픈으로 대기열이 운영 중입니다."}<br>순번이 되면 <b>자동으로 입장</b>돼요. 창을 닫지 말고 기다려 주세요.</div>
+    </div>
+    <div class="q-bar"><div class="q-fill" id="qFill"></div></div>
+    <div class="q-stat"><span>예상 대기 <b id="qEta">${presale?"약 1분":"약 12분"}</b></span><span id="qPct">0%</span></div>
+
+    ${cfg.qRate?`<div class="ratebox">
+      <div class="rate-top"><span class="rl">실시간 예매율 <span style="font-weight:400;font-size:11px">(예매완료 기준)</span></span><span class="rv" id="rateV">62%</span></div>
+      <div class="rate-bar"><div class="rate-sold" id="rateBar" style="width:62%"></div></div>
+      <div class="rate-legend"><span>예매완료 <b id="rateSold">6,200</b>석</span><span>전체 10,000석</span></div>
+    </div>`:""}
+
+    ${cfg.qBanner?`<div class="qbanner"><span class="adtag">AD</span>
+      <span class="qb-ic">🎧</span><div><div class="qb-t">공식 응원봉 사전예약 OPEN</div><div class="qb-s">대기 중 놓치지 마세요 · 한정수량</div></div>
+      <span class="qb-go">보기 ›</span></div>`:""}
+
+    <div class="notice gray" style="margin-top:16px">
+      <li>대기 중 새로고침·앱 종료 시 순번이 초기화될 수 있어요.</li>
+      <li>순번이 되면 <b>자동으로 입장</b>됩니다 — 90% 이상부터 화면이 깜빡여 알려드려요.</li></div>
+    <button class="btn ghost" id="qSkip" style="margin-top:16px">⏩ 대기 빠르게 넘기기 (데모)</button>
+  </div>`;
+  setBar('<button class="btn" id="qEnter" disabled>순번이 되면 자동으로 입장합니다</button>');
+  wirePrep();
+  const arc=$("#qArc"),fill=$("#qFill"),pctEl=$("#qPct"),posEl=$("#qPos"),etaEl=$("#qEta");
+  let pct=0, warned=false;
+  function step(inc){
+    pct=Math.min(100,pct+inc);
+    arc.style.strokeDashoffset=251-(251*pct/100);
+    fill.style.width=pct+"%"; pctEl.textContent=Math.floor(pct)+"%";
+    posEl.textContent=money(Math.max(0,Math.round(base*(1-pct/100))));
+    const remMin=Math.ceil((presale?1:12)*(1-pct/100));
+    etaEl.textContent=pct>=100?"입장!":"약 "+Math.max(1,remMin)+"분";
+    if(cfg.qRate){ const r=62+Math.round(pct/100*6); const rv=$("#rateV"); if(rv){rv.textContent=r+"%";$("#rateBar").style.width=r+"%";$("#rateSold").textContent=money(r*100);} }
+    if(pct>=90 && !warned){ warned=true; const a=$("#qAlert"); if(a) a.style.display="flex"; if(!overview) screen.classList.add("qflash"); const tt=$("#qTitle"); if(tt) tt.textContent="곧 입장합니다!"; }
+    if(pct>=100){ clearInterval(queueTimer); enter(); }
+  }
+  function enter(){
+    queueReady=true;
+    const tt=$("#qTitle"),sb=$("#qSub"),pos=$("#qPos"),a=$("#qAlert");
+    if(tt) tt.textContent="입장 중…";
+    if(sb) sb.innerHTML="순번이 되어 <b>자동으로 입장</b>하고 있어요.";
+    if(pos) pos.textContent="0";
+    if(a) a.textContent="✅ 입장! 좌석 선택으로 이동합니다";
+    setBar('<button class="btn" id="qEnter" disabled>입장 중…</button>');
+    setTimeout(()=>{ screen.classList.remove("qflash"); next(); }, 900);
+  }
+  clearInterval(queueTimer);
+  if(!overview) queueTimer=setInterval(()=>step(presale?9:4),420);
+  $("#qSkip").onclick=()=>{ clearInterval(queueTimer); pct=98; step(2); };
+};
+
+/* ---- seat ---- */
+SCREENS.seat=function(){
+  $("#gnbTitle").textContent="좌석 선택";
+  screen.classList.add("has-bar");
+  const cols=12,rows=8,sold=new Set([3,5,14,15,26,38,50,51,62,71,73,84,90]);
+  let cells="";
+  for(let i=0;i<cols*rows;i++){const r=Math.floor(i/cols);const g=r<2?"vip":(r<5?"r":"s");
+    cells+=`<button class="seat ${g} ${sold.has(i)?'sold':''}" data-i="${i}" ${sold.has(i)?'disabled':''}></button>`;}
+  screen.innerHTML=`
+  <div class="pad fadein">
+    ${isEntry()?prepBar():""}
+    <div class="holdbar">⏳ 선택 좌석 유지 시간 <span class="ht" id="holdT">07:00</span></div>
+    <div style="margin-top:14px" class="stage-label">S T A G E</div>
+    <div class="seatgrid" id="seatGrid">${cells}</div>
+    <div class="seatlegend">
+      <span><i class="sqr" style="background:#F3D4E6"></i>VIP</span><span><i class="sqr" style="background:#D8E5D8"></i>R석</span>
+      <span><i class="sqr" style="background:#D6E0F2"></i>S석</span><span><i class="sqr" style="background:#E60578"></i>선택</span>
+      <span><i class="sqr" style="background:#E4E4E4"></i>판매완료</span></div>
+    <div class="notice gray" style="margin-top:16px"><li>1인 최대 <b>2매</b>까지 선택할 수 있어요.</li>
+      <li>선택 좌석은 결제 완료 전까지 다른 고객이 예매할 수 없어요.</li></div>
+    <div id="pickList" style="margin-top:14px"></div>
+  </div>`;
+  setBar(`<div class="row" style="margin-bottom:9px"><span class="muted" style="font-size:13px">선택 <b id="selCnt" class="pink">0</b>/2매</span>
+      <span class="price amt" id="selSum">0<span style="font-size:13px">원</span></span></div>
+    <button class="btn" id="seatNext" disabled>다음</button>`);
+  seatsPicked=[];
+  wirePrep();
+  const priceOf=i=>{const r=Math.floor(i/12);return r<2?154000:(r<5?132000:99000);};
+  const gradeOf=i=>{const r=Math.floor(i/12);return r<2?"VIP":(r<5?"R":"S");};
+  function refresh(){
+    $("#selCnt").textContent=seatsPicked.length;
+    const sum=seatsPicked.reduce((a,i)=>a+priceOf(i),0);
+    $("#selSum").innerHTML=money(sum)+'<span style="font-size:13px">원</span>';
+    $("#seatNext").disabled=seatsPicked.length===0;
+    $("#pickList").innerHTML=seatsPicked.length?`<div class="acard p">${seatsPicked.map(i=>`<div class="kv" style="padding:5px 0"><span class="k">${gradeOf(i)}석 · ${Math.floor(i/12)+1}열 ${i%12+1}번</span><span class="v amt">${money(priceOf(i))}원</span></div>`).join("")}</div>`:"";
+  }
+  $("#seatGrid").querySelectorAll(".seat:not(.sold)").forEach(s=>s.onclick=()=>{
+    const i=+s.dataset.i;
+    if(s.classList.contains("sel")){s.classList.remove("sel");seatsPicked=seatsPicked.filter(x=>x!==i);}
+    else{ if(seatsPicked.length>=2)return; s.classList.add("sel");seatsPicked.push(i);}
+    refresh();});
+  $("#seatNext").onclick=next;
+  startHold($("#holdT"));
+};
+
+/* ---- price (권종) ---- */
+SCREENS.price=function(){
+  $("#gnbTitle").textContent="가격 선택";
+  screen.classList.add("has-bar");
+  if(!seatsPicked.length) seatsPicked=[38,39];
+  const gradeOf=i=>{const r=Math.floor(i/12);return r<2?"VIP":(r<5?"R":"S");};
+  const baseOf=i=>{const r=Math.floor(i/12);return r<2?154000:(r<5?132000:99000);};
+  const N=seatsPicked.length;
+  const seatsSorted=[...seatsPicked].sort((a,b)=>baseOf(b)-baseOf(a));
+  const bases=seatsSorted.map(baseOf);
+  const PTYPES=[{k:"adult",l:"일반",s:"할인 없음",rate:1},{k:"youth",l:"청소년",s:"20% 할인",rate:.8},
+    {k:"senior",l:"경로우대",s:"50% 할인",rate:.5},{k:"disabled",l:"장애인 동반",s:"50% 할인",rate:.5}];
+  const counts={adult:N,youth:0,senior:0,disabled:0};
+  const gradeSummary=seatsSorted.map(i=>`${gradeOf(i)}석`).join(" · ");
+  screen.innerHTML=`
+  <div class="pad fadein">
+    <div class="holdbar" style="margin-bottom:14px">⏳ 좌석 유지 시간 <span class="ht" id="holdTp"></span></div>
+    <p class="sect-t">권종을 선택해 주세요</p>
+    <p style="font-size:12.5px;color:var(--t-muted);margin:6px 0 14px">선택 좌석 <b class="pink">${N}</b>매 (${gradeSummary}) · <b>＋ / −</b>로 권종별 매수를 바로 지정하세요. 합계가 좌석 수와 같아야 다음으로 넘어갈 수 있어요.</p>
+    <div id="ptypes">
+      ${PTYPES.map(p=>`<div class="ptype-row">
+        <div><div class="pt-n">${p.l}</div><div class="pt-s">${p.s}</div></div>
+        <div class="qty" data-k="${p.k}">
+          <button class="q-minus" aria-label="감소">−</button>
+          <span class="qn" id="qn-${p.k}">${counts[p.k]}</span>
+          <button class="q-plus" aria-label="증가">＋</button>
+        </div>
+      </div>`).join("")}
+    </div>
+    <div class="notice gray" style="margin-top:6px"><li>권종 할인은 현장에서 증빙 확인될 수 있습니다.</li></div>
+  </div>`;
+  setBar(`<div class="row" style="margin-bottom:9px"><span class="muted" style="font-size:13px">티켓 <b class="pink" id="ptCnt">${N}</b>/${N}매</span>
+      <span class="price amt pink" id="priceSum"></span></div>
+    <button class="btn" id="priceNext">다음</button>`);
+  const totalCount=()=>PTYPES.reduce((a,p)=>a+counts[p.k],0);
+  function recompute(){
+    const rates=[]; PTYPES.forEach(p=>{for(let i=0;i<counts[p.k];i++)rates.push(p.rate);});
+    let sum=0; bases.forEach((b,i)=>{sum+=Math.round(b*(rates[i]!==undefined?rates[i]:1));});
+    const tc=totalCount();
+    $("#priceSum").innerHTML=money(sum)+'<span style="font-size:13px">원</span>';
+    $("#ptCnt").textContent=tc;
+    $("#priceNext").disabled=tc!==N;
+    $("#ptypes").querySelectorAll(".qty").forEach(q=>{
+      const k=q.dataset.k;
+      q.querySelector(".q-minus").disabled=counts[k]<=0;
+      q.querySelector(".q-plus").disabled=tc>=N;
+      q.querySelector(".qn").textContent=counts[k];
+    });
+    lineItems=seatsSorted.map((s,i)=>({seat:s,grade:gradeOf(s),base:baseOf(s),rate:rates[i]!==undefined?rates[i]:1}));
+  }
+  $("#ptypes").querySelectorAll(".qty").forEach(q=>{
+    const k=q.dataset.k;
+    q.querySelector(".q-minus").onclick=()=>{ if(counts[k]>0){counts[k]--;recompute();} };
+    q.querySelector(".q-plus").onclick=()=>{ if(totalCount()<N){counts[k]++;recompute();} };
+  });
+  recompute();
+  $("#priceNext").onclick=next;
+  startHold($("#holdTp"));
+};
+
+/* ---- booker (이름·연락처·이메일만) ---- */
+SCREENS.booker=function(){
+  $("#gnbTitle").textContent="예매자 정보";
+  screen.classList.add("has-bar");
+  const recvOpts=[{k:"mobile",ic:"📱",t:"모바일 티켓",s:"즉시 발권 · 앱에서 확인"},{k:"onsite",ic:"🎫",t:"현장 수령",s:"공연 당일 매표소 · QR"}];
+  if(cfg.delivery) recvOpts.push({k:"delivery",ic:"📦",t:"배송",s:"공연 3일 전 발송 · 배송비 3,000원"});
+  if(!recvOpts.some(o=>o.k===recvMethod)) recvMethod="mobile";
+  screen.innerHTML=`
+  <div class="pad fadein">
+    <div class="holdbar" style="margin-bottom:16px">⏳ 좌석 유지 시간 <span class="ht" id="holdT2"></span></div>
+    <p class="sect-t">예매자 정보</p>
+    <p style="font-size:12.5px;color:var(--t-muted);margin:6px 0 14px">예매 확인·안내에 사용돼요.</p>
+    <div class="field"><label>이름</label><input value="김베리"/></div>
+    <div class="field"><label>연락처</label><input value="010-1234-5678"/></div>
+    <div class="field"><label>이메일</label><input value="berriz@kakao.com"/></div>
+
+    <div class="divider"></div>
+    <div class="tinylabel" style="margin-bottom:10px">수령방법</div>
+    <div style="display:flex;flex-direction:column;gap:9px" id="recv">
+      ${recvOpts.map(o=>`<button class="pm" data-k="${o.k}" aria-pressed="${o.k===recvMethod}">
+        <span class="radio"></span><span class="pm-ic">${o.ic}</span><div><div class="pm-t">${o.t}</div><div class="pm-s">${o.s}</div></div></button>`).join("")}
+    </div>
+    <div id="addrBox"></div>
+  </div>`;
+  setBar('<button class="btn" id="bookNext">다음</button>');
+  function renderAddr(){
+    $("#addrBox").innerHTML = recvMethod==="delivery"
+      ? `<div class="field" style="margin-top:4px"><label>배송지</label><input placeholder="주소를 입력하세요" value="서울 성동구 왕십리로 83-21"/></div>
+         <div class="field" style="margin-top:8px"><input placeholder="상세주소"/></div>
+         <div class="notice gray" style="margin-top:10px"><li>배송 선택 시 <b>배송비 3,000원</b>이 결제금액에 추가돼요.</li></div>`:"";
+  }
+  $("#recv").querySelectorAll(".pm").forEach(p=>p.onclick=()=>{
+    recvMethod=p.dataset.k;$("#recv").querySelectorAll(".pm").forEach(x=>x.setAttribute("aria-pressed","false"));
+    p.setAttribute("aria-pressed","true");renderAddr();});
+  renderAddr();
+  $("#bookNext").onclick=next;
+  startHold($("#holdT2"));
+};
+
+/* ---- payment (주문서: 수령방법·할인·결제수단·취소수수료·전체동의) ---- */
+SCREENS.pay=function(){
+  $("#gnbTitle").textContent="주문서 · 결제";
+  screen.classList.add("has-bar");
+  const ticket = lineItems.length? lineItems.reduce((a,i)=>a+Math.round(i.base*i.rate),0) : 198000;
+  const cnt = lineItems.length||2;
+  const fee=cnt*2000;
+  const shipFee = (cfg.delivery && recvMethod==="delivery") ? 3000 : 0;
+  const couponAmt = couponOn?10000:0;
+  const voucherAmt = voucherOn?30000:0;
+  const total=Math.max(0,ticket+fee+shipFee-couponAmt-voucherAmt);
+  const recvLabel = recvMethod==="delivery"?"배송":(recvMethod==="onsite"?"현장 수령":"모바일 티켓");
+  const methods=[{k:"card",ic:"💳",t:"신용/체크카드"},{k:"kakao",ic:"🅚",t:"카카오페이"},{k:"trans",ic:"🏦",t:"계좌이체"},{k:"phone",ic:"📱",t:"휴대폰 결제"}];
+  const CS=[["예매 후 7일 이내 · 관람 10일 전까지","없음"],["관람일 9~7일 전","티켓금액의 10%"],["관람일 6~3일 전","티켓금액의 20%"],["관람일 2~1일 전","티켓금액의 30%"],["관람일 당일","취소 불가"]];
+  screen.innerHTML=`
+  <div class="pad fadein">
+    <div class="holdbar" style="margin-bottom:16px">⏳ 좌석 유지 시간 <span class="ht" id="holdT3"></span></div>
+
+    ${(cfg.coupon||cfg.voucher)?`<div class="tinylabel" style="margin-bottom:10px">할인 적용</div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${cfg.coupon?`<button class="applyrow ${couponOn?'on':''}" id="cpRow">
+        <span class="ar-l"><span class="ar-ic">🎟️</span><div><div class="ar-t">할인쿠폰</div><div class="ar-s">${couponOn?"신규가입 1만원 쿠폰 적용됨":"사용 가능 쿠폰 2장"}</div></div></span>
+        ${couponOn?`<span class="ar-v">-${money(10000)}원</span>`:`<span class="chevr">›</span>`}</button>`:""}
+      ${cfg.voucher?`<button class="applyrow ${voucherOn?'on':''}" id="vcRow">
+        <span class="ar-l"><span class="ar-ic">🎫</span><div><div class="ar-t">공연 예매권</div><div class="ar-s">${voucherOn?"베리즈 예매권 3만원 적용됨":"보유 예매권 1장"}</div></div></span>
+        ${voucherOn?`<span class="ar-v">-${money(30000)}원</span>`:`<span class="chevr">›</span>`}</button>`:""}
+    </div><div class="divider"></div>`:""}
+
+    <div class="tinylabel" style="margin-bottom:10px">결제수단</div>
+    <div style="display:flex;flex-direction:column;gap:9px" id="pms">
+      ${methods.map(m=>`<button class="pm" data-k="${m.k}" aria-pressed="${m.k===payMethod}"><span class="radio"></span><span class="pm-ic">${m.ic}</span><span class="pm-t">${m.t}</span></button>`).join("")}
+    </div>
+    <div class="divider"></div>
+
+    <div class="tinylabel" style="margin-bottom:10px">취소 수수료 안내</div>
+    <div class="acard p">
+      ${CS.map(r=>`<div class="feekv"><span class="fl">${r[0]}</span><span class="fr ${r[1]==='없음'?'pink':''}">${r[1]}</span></div>`).join("")}
+      <p style="font-size:11px;color:var(--t-muted);margin:10px 2px 0;line-height:1.55">※ 예매일 기준·관람일 기준 규정에 따라 산정되며, 취소 수수료는 티켓금액 기준입니다.</p>
+    </div>
+    <div class="divider"></div>
+
+    <div class="acard p">
+      <div class="kv" style="padding-top:0"><span class="k">수령방법</span><span class="v">${recvLabel}</span></div>
+      <div class="kv"><span class="k">티켓 금액 (${cnt}매)</span><span class="v amt">${money(ticket)}원</span></div>
+      <div class="kv"><span class="k">예매 수수료</span><span class="v amt">${money(fee)}원</span></div>
+      ${shipFee?`<div class="kv"><span class="k">배송비</span><span class="v amt">${money(shipFee)}원</span></div>`:""}
+      ${couponAmt?`<div class="kv"><span class="k">할인쿠폰</span><span class="v amt pink">-${money(couponAmt)}원</span></div>`:""}
+      ${voucherAmt?`<div class="kv"><span class="k">공연 예매권</span><span class="v amt pink">-${money(voucherAmt)}원</span></div>`:""}
+      <div class="divider" style="margin:10px 0"></div>
+      <div class="row"><span style="font-weight:700;font-size:15px">총 결제금액</span><span class="price pink amt">${money(total)}원</span></div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="tinylabel" style="margin-bottom:2px">약관 · 개인정보 동의</div>
+    <div class="agree-all" id="agAll"><div class="box">✓</div><div class="at">전체 동의</div></div>
+    <div class="check" data-k="a"><div class="box">✓</div><div class="ct"><b>[필수]</b> 1인 매수제한(2매) 및 부정예매 금지에 동의합니다.</div></div>
+    <div class="check" data-k="b"><div class="box">✓</div><div class="ct"><b>[필수]</b> 취소·환불 규정 및 취소 수수료 안내를 확인했습니다.</div></div>
+    <div class="check" data-k="c"><div class="box">✓</div><div class="ct"><b>[필수]</b> 개인정보 수집·이용에 동의합니다.</div></div>
+    <p style="font-size:11px;color:var(--t-muted);margin:10px 2px 0;line-height:1.6">멱등키로 이중 결제를 방지합니다. 결제 완료 시 선택 좌석이 확정됩니다.</p>
+  </div>`;
+  setBar(`<button class="btn" id="payNext" disabled>${money(total)}원 결제하기</button>`);
+
+  function refreshAgree(){
+    ["a","b","c"].forEach(k=>{const el=screen.querySelector('.check[data-k="'+k+'"]'); if(el) el.dataset.on=agree[k]?"1":"0";});
+    const all=agree.a&&agree.b&&agree.c;
+    $("#agAll").dataset.on=all?"1":"0";
+    $("#payNext").disabled=!(all&&payMethod);
+  }
+  $("#pms").querySelectorAll(".pm").forEach(p=>p.onclick=()=>{payMethod=p.dataset.k;
+    $("#pms").querySelectorAll(".pm").forEach(x=>x.setAttribute("aria-pressed","false"));p.setAttribute("aria-pressed","true");refreshAgree();});
+  screen.querySelectorAll(".check").forEach(c=>c.onclick=()=>{const k=c.dataset.k;agree[k]=!agree[k];refreshAgree();});
+  $("#agAll").onclick=()=>{const all=!(agree.a&&agree.b&&agree.c);agree.a=agree.b=agree.c=all;refreshAgree();};
+  if(cfg.coupon)$("#cpRow").onclick=()=>{couponOn=!couponOn;SCREENS.pay();};
+  if(cfg.voucher)$("#vcRow").onclick=()=>{voucherOn=!voucherOn;SCREENS.pay();};
+  $("#payNext").onclick=()=>{const b=$("#payNext");b.disabled=true;b.textContent="결제 처리 중…";clearInterval(holdTimer);setTimeout(next,800);};
+  refreshAgree();
+  startHold($("#holdT3"));
+};
+
+/* ---- done ---- */
+SCREENS.done=function(){
+  $("#gnbTitle").textContent="예매 완료";
+  const cnt=lineItems.length||2;
+  const seatTxt=lineItems.length?lineItems.map(it=>`${it.grade}석 ${Math.floor(it.seat/12)+1}열 ${it.seat%12+1}번`).join(", "):"R석 4열 3번, R석 4열 4번";
+  const ticket=lineItems.length?lineItems.reduce((a,i)=>a+Math.round(i.base*i.rate),0):198000;
+  const total=Math.max(0,ticket+cnt*2000-(couponOn?10000:0)-(voucherOn?30000:0));
+  const md=[{n:"공식 응원봉 ver.2",p:"38,000원",e:"🪄",g:"linear-gradient(150deg,#7d2ff0,#e60578)",b:"한정"},
+    {n:"포토카드 세트 (7종)",p:"15,000원",e:"🖼️",g:"linear-gradient(150deg,#e60578,#ff6a3d)",b:"NEW"},
+    {n:"투어 티셔츠 [BLACK]",p:"42,000원",e:"👕",g:"linear-gradient(150deg,#2b2140,#5b2a8c)",b:""},
+    {n:"슬로건 타월",p:"22,000원",e:"🧣",g:"linear-gradient(150deg,#ff6a3d,#e60578)",b:""}];
+  screen.innerHTML=`
+  <div class="fadein">
+    <div class="done-hero"><div class="done-ring">✓</div>
+      <h2>김베리님,<br>${cfg.ptype==="always"?"구매가":"예매가"} 완료되었습니다</h2>
+      <div class="ordno">예매번호 T2026-0815-${cfg.sale==="presale"?"PRE":"GEN"}-004821</div></div>
+    <div class="pad" style="padding-top:6px">
+      <div class="ticket-stub">
+        <div class="stub-top"><div class="st-ttl">2026 BERRIZ FAN CONCERT [RE:START]</div><div class="st-sub">올림픽공원 KSPO DOME</div></div>
+        <div class="zigzag"></div>
+        <div style="padding:6px 16px 16px">
+          <div class="stub-perf"><span class="k">일시</span><span class="v">${cfg.manyRounds?"2026.08.15 (토) 14:00":"2026.08.15 (금) 19:00"}</span></div>
+          <div class="stub-perf"><span class="k">좌석</span><span class="v">${seatTxt}</span></div>
+          <div class="stub-perf"><span class="k">매수</span><span class="v">${cnt}매</span></div>
+          <div class="stub-perf"><span class="k">수령방법</span><span class="v">${recvMethod==="delivery"?"배송":(recvMethod==="onsite"?"현장 수령":"모바일 티켓")}</span></div>
+          <div class="stub-perf"><span class="k">결제금액</span><span class="v pink amt">${money(total)}원</span></div>
+          <div class="stub-perf"><span class="k">예매유형</span><span class="v">${cfg.sale==="presale"?"선예매":"일반예매"}</span></div>
+        </div>
+      </div>
+      <div class="notice gray" style="margin-top:16px">
+        <li>모바일 티켓은 공연 당일 예매내역에서 확인할 수 있어요.</li>
+        <li>예매 완료 알림을 카카오톡으로 보내드렸어요.</li></div>
+
+      ${cfg.mdPromo?`<div class="md-wrap">
+        <div class="md-head"><span class="mh-t">🛍️ 공연 MD, 놓치지 마세요</span><span class="mh-more">MD 전체보기 ›</span></div>
+        <div class="md-scroll">
+          ${md.map(x=>`<div class="md-card"><div class="md-thumb" style="background:${x.g}">${x.b?`<span class="md-badge">${x.b}</span>`:""}${x.e}</div>
+            <div class="md-nm">${x.n}</div><div class="md-pr">${x.p}</div></div>`).join("")}
+        </div></div>`:""}
+
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn ghost" id="toMain" style="flex:1">메인으로</button>
+        <button class="btn" id="toList" style="flex:1">예매내역 보기</button></div>
+      <div class="stepdots" style="margin-top:20px">${SEQ.map((k,i)=>`<i class="${i<=idx()?'on':''}"></i>`).join("")}</div>
+    </div>
+  </div>`;
+  $("#toMain").onclick=resetFlow;
+  $("#toList").onclick=()=>alert("데모: 예매내역 화면으로 이동합니다.");
+};
+
+/* ---- hold timer ---- */
+function startHold(el){
+  clearInterval(holdTimer);
+  const draw=()=>{const m=Math.floor(holdLeft/60),s=holdLeft%60;if(el)el.textContent=holdLeft<=0?"만료":String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");};
+  draw();
+  if(overview) return;
+  holdTimer=setInterval(()=>{holdLeft--;draw();if(holdLeft<=0)clearInterval(holdTimer);},1000);
+}
+
+/* ---- controls ---- */
+function resetFlow(){ stepKey="product"; seatsPicked=[];lineItems=[];payMethod=null;recvMethod="mobile";couponOn=false;voucherOn=false;agree={a:false,b:false,c:false};queueReady=false;loggedIn=!cfg.notReady;idVerified=!cfg.notReady;presaleVerified=false;holdLeft=420; paint(); }
+$("#segType").querySelectorAll("button").forEach(b=>b.onclick=()=>{cfg.ptype=b.dataset.v;resetFlow();applyCfg();});
+$("#segSale").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.disabled)return;cfg.sale=b.dataset.v;presaleVerified=false;resetFlow();applyCfg();});
+$("#resetBtn").onclick=()=>{presaleVerified=false;resetFlow();};
+$("#gnbBack").onclick=prev;
+
+/* ---- 전체 화면 오버뷰 (클릭 없이 모든 화면 한눈에) ---- */
+function buildOverview(){
+  const host=$("#ovGrid"); if(!host) return;
+  host.innerHTML="";
+  const snap={seatsPicked:[...seatsPicked],lineItems:JSON.parse(JSON.stringify(lineItems)),payMethod,recvMethod,couponOn,voucherOn,agree:{...agree},presaleVerified,loggedIn,idVerified,holdLeft,queueReady,stepKey};
+  const mainScreen=$("#screen"), mainBtmbar=$("#btmbar");
+  overview=true;
+  SEQ.forEach((k,i)=>{
+    const card=document.createElement("div"); card.className="ovcard";
+    card.innerHTML=`<div class="ovcap"><span class="ovn">${i+1}</span>${STEPS[k].title}</div>
+      <div class="ovframe"><div class="phone mini">
+        <div class="statusbar"><span>9:41</span><span class="dots">●●● 📶 🔋</span></div>
+        <div class="gnb"><span class="title">${STEPS[k].title}</span></div>
+        <div class="screen ovscreen"></div>
+        <div class="btmbar ovbar" style="display:none"></div>
+        <div class="homeind"></div>
+      </div></div>`;
+    host.appendChild(card);
+    screen=card.querySelector(".ovscreen");
+    btmbar=card.querySelector(".ovbar");
+    stepKey=k;
+    try{ SCREENS[k](); }catch(e){}
+  });
+  overview=false;
+  screen=mainScreen; btmbar=mainBtmbar;
+  seatsPicked=snap.seatsPicked; lineItems=snap.lineItems; payMethod=snap.payMethod; recvMethod=snap.recvMethod;
+  couponOn=snap.couponOn; voucherOn=snap.voucherOn; agree=snap.agree; presaleVerified=snap.presaleVerified;
+  loggedIn=snap.loggedIn; idVerified=snap.idVerified; holdLeft=snap.holdLeft; queueReady=snap.queueReady; stepKey=snap.stepKey;
+}
+function setView(ov){
+  overviewMode=ov;
+  const eg=document.querySelector(".exp-grid");
+  $("#overviewWrap").style.display = ov?"block":"none";
+  if(eg) eg.style.display = ov?"none":"grid";
+  $("#viewBtn").textContent = ov?"▷ 체험 모드":"▤ 전체 보기";
+  if(ov) buildOverview();
+}
+$("#viewBtn").onclick=()=>setView(!overviewMode);
+
+/* ---- init ---- */
+loggedIn=idVerified=!cfg.notReady;
+renderSegs();renderToggles();paint();
+</script>
+
+
+</body></html>
